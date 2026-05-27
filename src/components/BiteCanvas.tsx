@@ -99,12 +99,13 @@ async function generateShareImage(
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
+  // Load through a same-origin proxy to avoid canvas CORS taint
+  const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
   const img = new window.Image();
-  img.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = reject;
-    img.src = imageUrl;
+    img.src = proxyUrl;
   });
   ctx.drawImage(img, 0, 0, W, H);
 
@@ -279,15 +280,9 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
     try {
       const blob = await generateShareImage(imageUrl, allBites, state.point);
       const file = new File([blob], "my-bite.jpg", { type: "image/jpeg" });
-      const shareUrl = window.location.href;
 
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: title,
-          text: `Where would you bite this ${title}? 🥪`,
-          url: shareUrl,
-        });
+        await navigator.share({ files: [file], text: `Where would you bite this ${title}? 🥪` });
       } else {
         // Fallback: download the image
         const url = URL.createObjectURL(blob);
