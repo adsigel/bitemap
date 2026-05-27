@@ -283,6 +283,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
 
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text: `Where would you bite this ${title}? 🥪` });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share" });
       } else {
         // Fallback: download the image
         const url = URL.createObjectURL(blob);
@@ -291,6 +292,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
         a.download = "my-bite.jpg";
         a.click();
         URL.revokeObjectURL(url);
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "download" });
       }
     } catch {
       // User cancelled share or export failed — no-op
