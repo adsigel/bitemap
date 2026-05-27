@@ -24,7 +24,7 @@ type State =
   | { phase: "placed"; point: Point }
   | { phase: "submitting"; point: Point }
   | { phase: "done"; point: Point; percentile: number; totalBites: number }
-  | { phase: "already_bitten" };
+  | { phase: "already_bitten"; point: Point };
 
 // Compare against other biters only — don't include the user's own bite.
 function computePercentile(myPoint: Point, otherBites: Point[]): number {
@@ -204,7 +204,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setState({ phase: "already_bitten" });
+          setState({ phase: "already_bitten", point: { x: data.x, y: data.y } });
           // Pre-fetch next sandwich in the background
           pickNextSandwichId(sandwichId, supabase).then((id) => {
             nextIdRef.current = id;
@@ -253,7 +253,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
     });
 
     if (error) {
-      setState({ phase: "already_bitten" });
+      setState({ phase: "already_bitten", point });
       nextIdRef.current = await nextIdPromise;
       return;
     }
@@ -285,7 +285,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
   }, [sandwichId, supabase, router]);
 
   const handleShare = useCallback(async () => {
-    if (state.phase !== "done") return;
+    if (state.phase !== "done" && state.phase !== "already_bitten") return;
     setIsSharing(true);
     try {
       const blob = await generateShareImage(imageUrl, allBites, state.point);
@@ -443,6 +443,13 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
           <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-4 text-center text-stone-500">
             You&apos;ve already bitten this one.
           </div>
+          <button
+            onClick={handleShare}
+            disabled={isSharing}
+            className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+          >
+            {isSharing ? "Preparing…" : "Share my bite 📤"}
+          </button>
           <NextButton />
         </div>
       )}
