@@ -55,7 +55,6 @@ function drawHeatmap(
   height: number
 ) {
   const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, width, height);
   if (bites.length === 0) return;
 
   const radius = Math.min(width, height) * 0.13;
@@ -99,15 +98,26 @@ async function generateShareImage(
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  // Load through a same-origin proxy to avoid canvas CORS taint
+  // Fill white so a failed image load shows white rather than black
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+
+  // Fetch as blob first so the data is fully in memory before we touch the canvas,
+  // and use a same-origin proxy to avoid canvas CORS taint
   const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
-  const img = new window.Image();
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = reject;
-    img.src = proxyUrl;
-  });
-  ctx.drawImage(img, 0, 0, W, H);
+  const imageBlob = await fetch(proxyUrl).then((r) => r.blob());
+  const blobUrl = URL.createObjectURL(imageBlob);
+  try {
+    const img = new window.Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
+      img.src = blobUrl;
+    });
+    ctx.drawImage(img, 0, 0, W, H);
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
 
   drawHeatmap(canvas, bites, W, H);
 
