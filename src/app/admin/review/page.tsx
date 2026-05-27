@@ -1,0 +1,84 @@
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/server";
+import { approveSandwich, rejectSandwich } from "./actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminReviewPage() {
+  const supabase = await createClient();
+
+  const { data: pending } = await supabase
+    .from("sandwiches")
+    .select("*")
+    .eq("approved", false)
+    .order("created_at", { ascending: true });
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <h1 className="mb-1 text-xl font-bold">Sandwich review queue</h1>
+      <p className="mb-6 text-stone-500">
+        {pending?.length
+          ? `${pending.length} sandwich${pending.length === 1 ? "" : "es"} pending approval`
+          : "All clear — nothing pending."}
+      </p>
+
+      <div className="space-y-6">
+        {pending?.map((sandwich) => (
+          <div
+            key={sandwich.id}
+            className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm"
+          >
+            <div className="relative aspect-[4/3] w-full bg-stone-100">
+              <Image
+                src={sandwich.image_url}
+                alt={sandwich.title}
+                fill
+                className="object-cover"
+                sizes="672px"
+              />
+            </div>
+            <div className="p-4">
+              <p className="font-semibold">{sandwich.title}</p>
+              {sandwich.description && (
+                <p className="text-sm text-stone-500">{sandwich.description}</p>
+              )}
+              <p className="mt-1 text-xs text-stone-400">
+                Submitted {new Date(sandwich.created_at).toLocaleString()}
+              </p>
+              <div className="mt-4 flex gap-3">
+                <form
+                  action={async () => {
+                    "use server";
+                    await approveSandwich(sandwich.id);
+                  }}
+                  className="flex-1"
+                >
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition hover:bg-green-600"
+                  >
+                    Approve
+                  </button>
+                </form>
+                <form
+                  action={async () => {
+                    "use server";
+                    await rejectSandwich(sandwich.id);
+                  }}
+                  className="flex-1"
+                >
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-medium text-red-600 transition hover:bg-red-100"
+                  >
+                    Reject
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
