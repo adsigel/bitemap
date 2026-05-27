@@ -72,6 +72,7 @@ export default async function SandwichPage({
       )}
       <BiteCanvas
         sandwichId={sandwich.id}
+        title={sandwich.title}
         imageUrl={sandwich.image_url}
         initialBites={bites ?? []}
       />

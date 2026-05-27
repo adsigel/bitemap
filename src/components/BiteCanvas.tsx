@@ -14,6 +14,7 @@ interface Point {
 
 interface Props {
   sandwichId: string;
+  title: string;
   imageUrl: string;
   initialBites: Point[];
 }
@@ -87,6 +88,62 @@ function drawHeatmap(
   });
 }
 
+async function generateShareImage(
+  imageUrl: string,
+  bites: Point[],
+  userPoint: Point
+): Promise<Blob> {
+  const W = 1200, H = 900;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  const img = new window.Image();
+  img.crossOrigin = "anonymous";
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = reject;
+    img.src = imageUrl;
+  });
+  ctx.drawImage(img, 0, 0, W, H);
+
+  drawHeatmap(canvas, bites, W, H);
+
+  // User's bite marker
+  const px = userPoint.x * W;
+  const py = userPoint.y * H;
+  ctx.beginPath();
+  ctx.arc(px, py, 36, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255,255,255,0.65)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,80,0,0.2)";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px, py, 16, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,70,0,0.9)";
+  ctx.fill();
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Watermark
+  ctx.font = "bold 26px system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("bitemap.food", W - 18, H - 14);
+
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Canvas export failed"))),
+      "image/jpeg",
+      0.92
+    )
+  );
+}
+
 // Picks a random unbitten sandwich, falling back to any sandwich if all are bitten.
 async function pickNextSandwichId(
   currentId: string,
@@ -115,7 +172,7 @@ async function pickNextSandwichId(
   return pool[Math.floor(Math.random() * pool.length)].id;
 }
 
-export function BiteCanvas({ sandwichId, imageUrl, initialBites }: Props) {
+export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -123,6 +180,7 @@ export function BiteCanvas({ sandwichId, imageUrl, initialBites }: Props) {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [allBites, setAllBites] = useState<Point[]>(initialBites);
   const [navigating, setNavigating] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -214,6 +272,37 @@ export function BiteCanvas({ sandwichId, imageUrl, initialBites }: Props) {
       router.push("/");
     }
   }, [sandwichId, supabase, router]);
+
+  const handleShare = useCallback(async () => {
+    if (state.phase !== "done") return;
+    setIsSharing(true);
+    try {
+      const blob = await generateShareImage(imageUrl, allBites, state.point);
+      const file = new File([blob], "my-bite.jpg", { type: "image/jpeg" });
+      const shareUrl = window.location.href;
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: title,
+          text: `Where would you bite this ${title}? 🥪`,
+          url: shareUrl,
+        });
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "my-bite.jpg";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      // User cancelled share or export failed — no-op
+    } finally {
+      setIsSharing(false);
+    }
+  }, [state, imageUrl, allBites, title]);
 
   const showHeatmap = state.phase === "done" || state.phase === "already_bitten";
   const markerPoint =
@@ -331,6 +420,13 @@ export function BiteCanvas({ sandwichId, imageUrl, initialBites }: Props) {
               <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
             )}
           </div>
+          <button
+            onClick={handleShare}
+            disabled={isSharing}
+            className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+          >
+            {isSharing ? "Preparing…" : "Share my bite 📤"}
+          </button>
           <NextButton />
         </div>
       )}

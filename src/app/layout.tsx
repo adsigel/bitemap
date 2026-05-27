@@ -27,7 +27,7 @@ export default function RootLayout({
             href="/upload"
             className="absolute right-4 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
           >
-            + Submit
+            Add a Sando
           </a>
         </header>
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
