@@ -1,7 +1,43 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { BiteCanvas } from "@/components/BiteCanvas";
 import { SandwichViewTracker } from "@/components/SandwichViewTracker";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: sandwich } = await supabase
+    .from("sandwiches")
+    .select("title, description, image_url")
+    .eq("id", id)
+    .single();
+
+  if (!sandwich) return {};
+
+  const description = sandwich.description ?? "Where would you take your next bite?";
+
+  return {
+    title: `${sandwich.title} — Bitemap`,
+    description,
+    openGraph: {
+      title: sandwich.title,
+      description,
+      images: [{ url: sandwich.image_url, width: 1200, height: 900 }],
+      siteName: "Bitemap",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: sandwich.title,
+      description,
+      images: [sandwich.image_url],
+    },
+  };
+}
 
 export default async function SandwichPage({
   params,
