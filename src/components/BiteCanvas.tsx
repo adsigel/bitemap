@@ -38,14 +38,14 @@ function computePercentile(myPoint: Point, otherBites: Point[]): number {
     Math.hypot(b.x - centroidX, b.y - centroidY)
   );
 
-  const moreOutlierCount = otherDists.filter((d) => d > myDist).length;
-  return Math.round((moreOutlierCount / otherDists.length) * 100);
+  const moreCentralCount = otherDists.filter((d) => d < myDist).length;
+  return Math.round((moreCentralCount / otherDists.length) * 100);
 }
 
 function outlierLabel(percentile: number): string {
-  if (percentile > 66) return "That's a popular bite spot 🎯";
-  if (percentile > 33) return "That's a pretty popular bite spot 👍";
-  return "Such a unique spot for a bite! 🦄";
+  if (percentile > 66) return "Such a unique spot for a bite! 🦄";
+  if (percentile > 33) return "A pretty distinctive bite spot 👍";
+  return "That's a popular bite spot 🎯";
 }
 
 function drawHeatmap(
@@ -158,7 +158,8 @@ async function generateShareImage(
 // Picks a random unbitten sandwich, falling back to any sandwich if all are bitten.
 async function pickNextSandwichId(
   currentId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient>,
+  userId: string | null
 ): Promise<string | null> {
   const sessionId = getOrCreateSessionId();
 
@@ -170,11 +171,12 @@ async function pickNextSandwichId(
 
   if (!all?.length) return null;
 
-  const { data: bitten } = await supabase
-    .from("bites")
-    .select("sandwich_id")
-    .eq("session_id", sessionId)
-    .in("sandwich_id", all.map((s) => s.id));
+  const allIds = all.map((s) => s.id);
+  const bittenQuery = userId
+    ? supabase.from("bites").select("sandwich_id").eq("user_id", userId).in("sandwich_id", allIds)
+    : supabase.from("bites").select("sandwich_id").eq("session_id", sessionId).in("sandwich_id", allIds);
+
+  const { data: bitten } = await bittenQuery;
 
   const bittenIds = new Set(bitten?.map((b) => b.sandwich_id) ?? []);
   const unbitten = all.filter((s) => !bittenIds.has(s.id));
@@ -192,26 +194,34 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
   const [allBites, setAllBites] = useState<Point[]>(initialBites);
   const [navigating, setNavigating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null);
+      setUserLoaded(true);
+    });
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!userLoaded) return;
     const sessionId = getOrCreateSessionId();
-    supabase
-      .from("bites")
-      .select("x, y")
-      .eq("sandwich_id", sandwichId)
-      .eq("session_id", sessionId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setState({ phase: "already_bitten", point: { x: data.x, y: data.y } });
-          // Pre-fetch next sandwich in the background
-          pickNextSandwichId(sandwichId, supabase).then((id) => {
-            nextIdRef.current = id;
-          });
-        }
-      });
-  }, [sandwichId]);
+    const query = userId
+      ? supabase.from("bites").select("x, y").eq("sandwich_id", sandwichId).eq("user_id", userId).maybeSingle()
+      : supabase.from("bites").select("x, y").eq("sandwich_id", sandwichId).eq("session_id", sessionId).maybeSingle();
+
+    query.then(({ data }) => {
+      if (data) {
+        setState({ phase: "already_bitten", point: { x: data.x, y: data.y } });
+        pickNextSandwichId(sandwichId, supabase, userId).then((id) => {
+          nextIdRef.current = id;
+        });
+      }
+    });
+  }, [sandwichId, userId, userLoaded]);
 
   useEffect(() => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
@@ -243,13 +253,14 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
     const sessionId = getOrCreateSessionId();
 
     // Kick off next-sandwich lookup in parallel with the bite insert
-    const nextIdPromise = pickNextSandwichId(sandwichId, supabase);
+    const nextIdPromise = pickNextSandwichId(sandwichId, supabase, userId);
 
     const { error } = await supabase.from("bites").insert({
       sandwich_id: sandwichId,
       x: point.x,
       y: point.y,
       session_id: sessionId,
+      ...(userId ? { user_id: userId } : {}),
     });
 
     if (error) {
@@ -260,12 +271,19 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
 
     nextIdRef.current = await nextIdPromise;
 
+    if (!userId) {
+      const countKey = "bitemap_anon_bite_count";
+      const count = parseInt(localStorage.getItem(countKey) ?? "0", 10) + 1;
+      localStorage.setItem(countKey, String(count));
+      if (count >= 5) setShowNudge(true);
+    }
+
     const percentile = computePercentile(point, allBites);
     const updatedBites = [...allBites, point];
     setAllBites(updatedBites);
     setState({ phase: "done", point, percentile, totalBites: allBites.length });
     track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length });
-  }, [state, allBites, sandwichId, supabase]);
+  }, [state, allBites, sandwichId, supabase, userId]);
 
   const handleReset = useCallback(() => {
     if (state.phase === "placed") {
@@ -276,13 +294,13 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
 
   const handleNext = useCallback(async () => {
     setNavigating(true);
-    const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase));
+    const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
     if (id) {
       router.push(`/sandwich/${id}`);
     } else {
       router.push("/");
     }
-  }, [sandwichId, supabase, router]);
+  }, [sandwichId, supabase, router, userId]);
 
   const handleShare = useCallback(async () => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
@@ -420,19 +438,30 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
               <p className="mt-1 text-sm text-stone-500">
                 Your bite was more central than{" "}
                 <span className="font-medium text-stone-700">
-                  {state.percentile}% of {state.totalBites.toLocaleString()} biter{state.totalBites === 1 ? "" : "s"}
+                  {state.percentile}% of biter{state.totalBites === 1 ? "" : "s"}
                 </span>
               </p>
             ) : (
               <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
             )}
           </div>
+          {showNudge && !userId && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-center">
+              <p className="text-sm font-medium text-stone-700">You&apos;re on a roll! Save your bite history.</p>
+              <a
+                href="/sign-in"
+                className="mt-2 inline-block rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                Create a free account
+              </a>
+            </div>
+          )}
           <button
             onClick={handleShare}
             disabled={isSharing}
             className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
           >
-            {isSharing ? "Preparing…" : "Share my bite 📤"}
+            {isSharing ? "Preparing…" : "Share my bite"}
           </button>
           <NextButton />
         </div>
@@ -448,7 +477,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
             disabled={isSharing}
             className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
           >
-            {isSharing ? "Preparing…" : "Share my bite 📤"}
+            {isSharing ? "Preparing…" : "Share my bite"}
           </button>
           <NextButton />
         </div>

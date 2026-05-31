@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSignedUploadUrl, saveSandwich } from "@/lib/sandwich-actions";
+import { createClient } from "@/lib/supabase/client";
 import { track } from "@/lib/track";
 
 export default function UploadPage() {
@@ -12,6 +13,15 @@ export default function UploadPage() {
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [uploadedId, setUploadedId] = useState<string | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id ?? null);
+    });
+  }, [supabase]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -54,6 +64,7 @@ export default function UploadPage() {
       title,
       description: "",
       imageUrl: urlData.publicUrl,
+      uploadedBy: currentUserId,
     });
 
     if (saveError || !id) {
@@ -63,7 +74,33 @@ export default function UploadPage() {
     }
 
     track("Sandwich Uploaded", { title, sandwich_id: id });
-    router.push(`/sandwich/${id}?submitted=1`);
+    if (currentUserId) {
+      router.push(`/sandwich/${id}?submitted=1`);
+    } else {
+      setUploadedId(id);
+      setSubmitting(false);
+    }
+  }
+
+  if (uploadedId) {
+    return (
+      <div className="mx-auto flex max-w-sm flex-col items-center py-16 text-center">
+        <div className="mb-2 text-4xl">🥪</div>
+        <h1 className="mb-2 text-2xl font-bold">Sandwich submitted!</h1>
+        <p className="mb-8 text-stone-500">
+          It&apos;ll show up once we review it. Create an account to track your submissions.
+        </p>
+        <a
+          href="/sign-in"
+          className="mb-3 w-full rounded-xl bg-orange-500 px-4 py-3 text-center font-semibold text-white transition hover:bg-orange-600"
+        >
+          Create a free account
+        </a>
+        <a href={`/sandwich/${uploadedId}`} className="text-sm text-stone-400 hover:text-stone-600">
+          Skip for now
+        </a>
+      </div>
+    );
   }
 
   return (

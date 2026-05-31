@@ -58,12 +58,27 @@ export default async function SandwichPage({
 
   if (!sandwich) notFound();
 
+  let uploaderName: string | null = null;
+  if (sandwich.uploaded_by) {
+    const { data: uploader } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", sandwich.uploaded_by)
+      .single();
+    uploaderName = uploader?.display_name ?? null;
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <SandwichViewTracker sandwichId={sandwich.id} title={sandwich.title} />
-      <h1 className="mb-1 text-center text-xl font-bold">{sandwich.title}</h1>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <h1 className="text-xl font-bold">{sandwich.title}</h1>
+        <span className="shrink-0 text-sm text-stone-500">
+          {uploaderName ? `Added by ${uploaderName}` : "Added anonymously"}
+        </span>
+      </div>
       {sandwich.description && (
-        <p className="mb-2 text-center text-stone-500">{sandwich.description}</p>
+        <p className="mb-2 text-stone-500">{sandwich.description}</p>
       )}
       {submitted && !sandwich.approved && (
         <p className="mb-4 text-center text-sm text-amber-600">

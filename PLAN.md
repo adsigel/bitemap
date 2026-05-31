@@ -132,6 +132,19 @@ Images sourced from user's camera roll or royalty-free sources. Upload via admin
 
 ---
 
+## Known Issues / Future Work
+
+### Out-of-bounds bite detection
+Users occasionally place bites outside the sandwich itself — on hands, plates, backgrounds, etc. (observed in the wild). Ideas for addressing this:
+
+- **Soft warning**: If a bite lands far from the existing bite cluster centroid (e.g. >2 std deviations), show a gentle nudge: "That looks like it might be outside the sandwich — are you sure?" with a confirm/move option.
+- **Upload-time bite zone**: Let sandwich submitters draw a rough bounding polygon on the image during upload. Bites outside the polygon trigger a warning.
+- **ML segmentation**: Use a vision model to auto-detect the sandwich region and validate bite coordinates server-side. Most robust but most complex.
+
+The soft warning approach is the lowest-effort starting point and handles the common case without any per-sandwich setup.
+
+---
+
 ## Open Questions
 
 - Should the heatmap be visible before the user submits their bite, or only after? (Seeing it first anchors behavior — probably hide it until after submission)

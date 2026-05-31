@@ -22,6 +22,7 @@ export async function saveSandwich(args: {
   description: string;
   imageUrl: string;
   approved?: boolean;
+  uploadedBy?: string | null;
 }) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -31,6 +32,7 @@ export async function saveSandwich(args: {
       description: args.description.trim() || null,
       image_url: args.imageUrl,
       approved: args.approved ?? false,
+      ...(args.uploadedBy ? { uploaded_by: args.uploadedBy } : {}),
     })
     .select("id")
     .single();
