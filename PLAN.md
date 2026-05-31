@@ -132,6 +132,16 @@ Images sourced from user's camera roll or royalty-free sources. Upload via admin
 
 ---
 
+## Backlog
+
+- **Gamification** — badges (e.g. "First Biter", "Outlier", "100 Bites"), leaderboards by Bitemark score or bite count
+- **Email engagement** — transactional emails when a sandwich gets approved, or hits a bite milestone (10, 50, 100 bites); requires an email provider (Resend is a natural fit with Next.js)
+- **Admin upload notifications** — ping the site owner (email or push) when a new sandwich is submitted and awaiting review
+- **Sandwich name editing** — let the submitter edit the title of a sandwich they uploaded, pending or approved
+- **Sandwich deletion** — let the submitter delete their own sandwich (with a confirmation step); admin can delete any
+
+---
+
 ## Known Issues / Future Work
 
 ### Out-of-bounds bite detection

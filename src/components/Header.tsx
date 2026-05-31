@@ -18,18 +18,8 @@ export async function Header() {
   }
 
   return (
-    <header className="relative flex items-center justify-center border-b border-stone-200 bg-white px-4 py-3">
-      <a href="/" className="text-lg font-semibold tracking-tight">
-        🥪 Bitemap
-      </a>
-
-      <div className="absolute right-4 flex items-center gap-2">
-        <a
-          href="/upload"
-          className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
-        >
-          Add a Sando
-        </a>
+    <header className="flex items-center border-b border-stone-200 bg-white px-4 py-3">
+      <div className="flex flex-1 items-center">
         {user && profile ? (
           <AvatarMenu displayName={profile.display_name} avatarUrl={profile.avatar_url} />
         ) : (
@@ -40,6 +30,19 @@ export async function Header() {
             Sign in
           </a>
         )}
+      </div>
+
+      <a href="/" className="text-lg font-semibold tracking-tight">
+        🥪 Bitemap
+      </a>
+
+      <div className="flex flex-1 items-center justify-end">
+        <a
+          href="/upload"
+          className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
+        >
+          Add a Sando
+        </a>
       </div>
     </header>
   );

@@ -30,7 +30,7 @@ export function AvatarMenu({ displayName, avatarUrl }: Props) {
       setMenuStyle({
         position: "fixed",
         top: rect.bottom + 6,
-        right: window.innerWidth - rect.right,
+        left: rect.left,
         zIndex: 50,
       });
     }
