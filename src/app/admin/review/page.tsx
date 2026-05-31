@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { approveSandwich, rejectSandwich } from "./actions";
+import { approveSandwich, rejectSandwich, renameSandwich } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,19 @@ export default async function AdminReviewPage() {
               />
             </div>
             <div className="p-4">
-              <p className="font-semibold">{sandwich.title}</p>
+              <form action={renameSandwich.bind(null, sandwich.id)} className="mb-1 flex gap-2">
+                <input
+                  name="title"
+                  defaultValue={sandwich.title}
+                  className="flex-1 rounded-lg border border-stone-200 px-2 py-1 text-sm font-semibold focus:border-orange-400 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50"
+                >
+                  Rename
+                </button>
+              </form>
               {sandwich.description && (
                 <p className="text-sm text-stone-500">{sandwich.description}</p>
               )}

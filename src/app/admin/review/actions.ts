@@ -3,6 +3,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+export async function renameSandwich(id: string, formData: FormData) {
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) return;
+  const supabase = createAdminClient();
+  await supabase.from("sandwiches").update({ title }).eq("id", id);
+  revalidatePath("/admin/review");
+}
+
 export async function approveSandwich(id: string) {
   const supabase = createAdminClient();
   await supabase.from("sandwiches").update({ approved: true }).eq("id", id);
