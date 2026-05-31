@@ -53,18 +53,18 @@ Coordinates are stored as percentages (0–1) so they're display-size-agnostic.
 
 ### MVP
 
-- [ ] Admin sandwich seeding (manual image upload via Supabase dashboard or simple admin route)
-- [ ] Sandwich listing page — grid of sandwiches
-- [ ] Sandwich detail page — view image, tap to place a bite
-- [ ] Bite submission — POST coordinate to DB, one bite per sandwich per session
-- [ ] Heatmap overlay — show aggregated bite distribution on the image
-- [ ] Outlier score — simple percentile: "Your bite was more central than 73% of people"
+- [X] Admin sandwich seeding (manual image upload via Supabase dashboard or simple admin route)
+- [X] Sandwich listing page — grid of sandwiches
+- [X] Sandwich detail page — view image, tap to place a bite
+- [X] Bite submission — POST coordinate to DB, one bite per sandwich per session
+- [X] Heatmap overlay — show aggregated bite distribution on the image
+- [X] Outlier score — simple percentile: "Your bite was more central than 73% of people"
 
 ### Phase 2
 
-- [ ] User accounts — sign up to track bite history across devices
-- [ ] User-submitted sandwiches — upload photo + title, pending admin approval
-- [ ] Sandwich moderation queue
+- [X] User accounts — sign up to track bite history across devices
+- [X] User-submitted sandwiches — upload photo + title, pending admin approval
+- [X] Sandwich moderation queue
 - [ ] Bite breakdown by region (crust vs. middle, left vs. right)
 - [ ] Leaderboard / most-bitten sandwiches
 

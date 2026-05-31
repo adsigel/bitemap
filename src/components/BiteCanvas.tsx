@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateSessionId } from "@/lib/session";
 import { track } from "@/lib/track";
+import { checkBiteMilestones } from "@/lib/sandwich-actions";
 
 interface Point {
   x: number;
@@ -271,7 +272,9 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
 
     nextIdRef.current = await nextIdPromise;
 
-    if (!userId) {
+    if (userId) {
+      checkBiteMilestones(sandwichId, userId).catch(console.error);
+    } else {
       const countKey = "bitemap_anon_bite_count";
       const count = parseInt(localStorage.getItem(countKey) ?? "0", 10) + 1;
       localStorage.setItem(countKey, String(count));
