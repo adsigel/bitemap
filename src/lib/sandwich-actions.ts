@@ -1,6 +1,9 @@
 "use server";
 
+import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function getSignedUploadUrl(filename: string, contentType: string) {
   const supabase = createAdminClient();
@@ -36,6 +39,26 @@ export async function saveSandwich(args: {
     })
     .select("id")
     .single();
+
+  if (!error && data?.id) {
+    let uploader = "Anonymous";
+    if (args.uploadedBy) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", args.uploadedBy)
+        .single();
+      if (profile?.display_name) uploader = profile.display_name;
+    }
+
+    const { error: emailError } = await resend.emails.send({
+      from: "Bitemap <hello@bitemap.food>",
+      to: "hello@bitemap.food",
+      subject: `🥪 New sando needs review: ${args.title}`,
+      text: `${uploader} submitted "${args.title}" and it's waiting for approval.\n\nhttps://bitemap.food/admin/review`,
+    });
+    if (emailError) console.error("Resend error:", emailError);
+  }
 
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
