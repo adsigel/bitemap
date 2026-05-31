@@ -115,7 +115,17 @@ async function generateShareImage(
       img.onerror = reject;
       img.src = blobUrl;
     });
-    ctx.drawImage(img, 0, 0, W, H);
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const canvasAspect = W / H;
+    let drawW: number, drawH: number, offsetX: number, offsetY: number;
+    if (imgAspect > canvasAspect) {
+      drawH = H; drawW = H * imgAspect;
+      offsetX = (W - drawW) / 2; offsetY = 0;
+    } else {
+      drawW = W; drawH = W / imgAspect;
+      offsetX = 0; offsetY = (H - drawH) / 2;
+    }
+    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
   } finally {
     URL.revokeObjectURL(blobUrl);
   }
@@ -141,11 +151,18 @@ async function generateShareImage(
   ctx.stroke();
 
   // Watermark
+  const watermarkText = "bitemap.food";
   ctx.font = "bold 26px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  const textWidth = ctx.measureText(watermarkText).width;
+  const padX = 12, padY = 6;
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.beginPath();
+  ctx.roundRect(W - 18 - textWidth - padX, H - 14 - 26 - padY, textWidth + padX * 2, 26 + padY * 2, 6);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
-  ctx.fillText("bitemap.food", W - 18, H - 14);
+  ctx.fillText(watermarkText, W - 18, H - 14);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob(
