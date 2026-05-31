@@ -81,10 +81,10 @@ export async function checkBiteMilestones(sandwichId: string, userId: string) {
     if (email) {
       emailJobs.push(
         resend.emails.send({
-          from: "Bitemap <hello@bitemap.food>",
+          from: "Adam @ Bitemap <hello@bitemap.food>",
           to: email,
           subject: "You've taken your 10th bite! 🎉",
-          text: `You're 10 bites into your Bitemap journey. That makes you one dedicated biter. Thanks for the support! \n\nHave you shared a bite with friends yet? https://bitemap.food`,
+          text: `You're 10 bites into your Bitemap journey. That makes you one dedicated biter. Thanks for the support! \n\nHave you checked your bite stats in your profile? https://bitemap.food`,
         })
       );
       emailJobs.push(trackServer(userId, "User Notified", { notification: "10th Bite" }));
@@ -98,7 +98,7 @@ export async function checkBiteMilestones(sandwichId: string, userId: string) {
     if (email) {
       emailJobs.push(
         resend.emails.send({
-          from: "Bitemap <hello@bitemap.food>",
+          from: "Adam @ Bitemap <hello@bitemap.food>",
           to: email,
           subject: `Your sando just hit 5 bites 🥪`,
           text: `"${sandwich.title}" has received 5 bites times on Bitemap. Share it with friends to get more bites!\n\nhttps://bitemap.food/sandwich/${sandwichId}`,

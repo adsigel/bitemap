@@ -30,7 +30,7 @@ export async function approveSandwich(id: string) {
     const email = authData?.user?.email;
     if (email) {
       const { error: emailError } = await resend.emails.send({
-        from: "Bitemap <hello@bitemap.food>",
+        from: "Adam @ Bitemap <hello@bitemap.food>",
         to: email,
         subject: "Your sandwich was approved! 🥪",
         text: `"${sandwich.title}" is now live on Bitemap. Check it out and tell a friend!\n\nhttps://bitemap.food/sandwich/${id}`,
