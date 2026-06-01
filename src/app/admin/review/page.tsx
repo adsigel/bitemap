@@ -117,7 +117,19 @@ export default async function AdminReviewPage() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{sandwich.title}</p>
+              <form action={renameSandwich.bind(null, sandwich.id)} className="mb-1 flex gap-2">
+                <input
+                  name="title"
+                  defaultValue={sandwich.title}
+                  className="flex-1 rounded-lg border border-stone-200 px-2 py-1 text-sm font-semibold focus:border-orange-400 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50"
+                >
+                  Rename
+                </button>
+              </form>
               <p className="text-xs text-stone-400">
                 {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
               </p>
