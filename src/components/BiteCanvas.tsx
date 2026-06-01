@@ -489,9 +489,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
       const file = new File([blob], "my-bite.jpg", { type: "image/jpeg" });
 
       if (navigator.canShare?.({ files: [file] })) {
-        // Share image only — passing text causes Messages to generate a rich link
-        // preview alongside the file. Caption + URL are already in clipboard.
-        await navigator.share({ files: [file] });
+        await navigator.share({ files: [file], text: caption });
         track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share" });
       } else {
         const url = URL.createObjectURL(blob);
