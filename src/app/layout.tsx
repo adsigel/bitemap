@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Geist } from "next/font/google";
+import { Fustat } from "next/font/google";
 import { AmplitudeProvider } from "@/components/AmplitudeProvider";
 import { AccountCreatedTracker } from "@/components/AccountCreatedTracker";
 import { Header } from "@/components/Header";
 import "./globals.css";
 
-const geist = Geist({ subsets: ["latin"] });
+const fustat = Fustat({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Bitemap",
@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${geist.className} flex min-h-screen flex-col bg-stone-50 text-stone-900 antialiased`}>
+      <body className={`${fustat.className} flex min-h-screen flex-col bg-stone-50 text-stone-900 antialiased`}>
         <AmplitudeProvider apiKey={process.env.AMPLITUDE_API_KEY!}>
         <Suspense fallback={null}><AccountCreatedTracker /></Suspense>
         <Header />

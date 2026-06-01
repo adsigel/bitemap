@@ -19,7 +19,11 @@ export async function generateMetadata({
 
   if (!sandwich) return {};
 
-  const description = sandwich.description ?? "Where would you take your next bite?";
+  const description = sandwich.description
+    ? `${sandwich.description} — Tap where you'd take your next bite on Bitemap.`
+    : `Tap where you'd bite this ${sandwich.title}. See where everyone else bites too.`;
+
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/sandwich/${id}`;
 
   return {
     title: `${sandwich.title} — Bitemap`,
@@ -27,7 +31,9 @@ export async function generateMetadata({
     openGraph: {
       title: sandwich.title,
       description,
-      images: [{ url: sandwich.image_url, width: 1200, height: 900 }],
+      url,
+      type: "website",
+      images: [{ url: sandwich.image_url, width: 1200, height: 900, alt: sandwich.title }],
       siteName: "Bitemap",
     },
     twitter: {
