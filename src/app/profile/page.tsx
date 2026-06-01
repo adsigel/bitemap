@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase
       .from("sandwiches")
-      .select("id, title, approved, created_at")
+      .select("id, slug, title, approved, created_at")
       .eq("uploaded_by", user.id)
       .order("created_at", { ascending: false }),
     supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
@@ -135,7 +135,7 @@ export default async function ProfilePage() {
                         Approved
                       </span>
                       <a
-                        href={`/sandwich/${s.id}`}
+                        href={`/sandwich/${s.slug ?? s.id}`}
                         className="text-sm text-orange-500 hover:underline"
                       >
                         View

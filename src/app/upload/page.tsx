@@ -15,6 +15,7 @@ export default function UploadPage() {
   const [submitting, setSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [uploadedId, setUploadedId] = useState<string | null>(null);
+  const [uploadedSlug, setUploadedSlug] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function UploadPage() {
 
     setStatus("Submitting sandwich…");
 
-    const { error: saveError, id } = await saveSandwich({
+    const { error: saveError, id, slug } = await saveSandwich({
       title,
       description: "",
       imageUrl: urlData.publicUrl,
@@ -75,8 +76,9 @@ export default function UploadPage() {
 
     track("Sandwich Uploaded", { title, sandwich_id: id });
     if (currentUserId) {
-      router.push(`/sandwich/${id}?submitted=1`);
+      router.push(`/sandwich/${slug ?? id}?submitted=1`);
     } else {
+      setUploadedSlug(slug);
       setUploadedId(id);
       setSubmitting(false);
     }
@@ -96,7 +98,7 @@ export default function UploadPage() {
         >
           Create a free account
         </a>
-        <a href={`/sandwich/${uploadedId}`} className="text-sm text-stone-400 hover:text-stone-600">
+        <a href={`/sandwich/${uploadedSlug ?? uploadedId}`} className="text-sm text-stone-400 hover:text-stone-600">
           Skip for now
         </a>
       </div>

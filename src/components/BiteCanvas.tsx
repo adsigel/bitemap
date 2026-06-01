@@ -15,9 +15,12 @@ interface Point {
 
 interface Props {
   sandwichId: string;
+  slug?: string;
   title: string;
   imageUrl: string;
   initialBites: Point[];
+  autoShare?: boolean;
+  submitted?: boolean;
 }
 
 type State =
@@ -340,7 +343,7 @@ async function pickNextSandwichId(
   return pool[Math.floor(Math.random() * pool.length)].id;
 }
 
-export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, autoShare, submitted }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -479,7 +482,7 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
         if (otherBites.length > 0) percentile = computePercentile(state.point, otherBites);
       }
       const n = allBites.length;
-      const sandwichUrl = `https://bitemap.food/sandwich/${sandwichId}`;
+      const sandwichUrl = `https://bitemap.food/sandwich/${slug ?? sandwichId}`;
       let caption: string;
       if (percentile === null || n < 15) {
         caption = `Brand new sandwich on Bitemap — be one of the first to call where you'd bite this ${title}: ${sandwichUrl}`;
@@ -515,6 +518,14 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
       setIsSharing(false);
     }
   }, [state, imageUrl, allBites, title]);
+
+  const autoShareFired = useRef(false);
+  useEffect(() => {
+    if (!autoShare || autoShareFired.current) return;
+    if (state.phase !== "already_bitten") return;
+    autoShareFired.current = true;
+    handleShare();
+  }, [autoShare, state.phase, handleShare]);
 
   const showHeatmap = state.phase === "done" || state.phase === "already_bitten";
   const markerPoint =
@@ -620,16 +631,27 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
       {state.phase === "done" && (
         <div className="space-y-3">
           <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-4 text-center">
-            <p className="text-lg font-semibold">{outlierLabel(state.percentile)}</p>
-            {state.totalBites > 0 ? (
-              <p className="mt-1 text-sm text-stone-500">
-                Your bite was more central than{" "}
-                <span className="font-medium text-stone-700">
-                  {state.percentile}% of biter{state.totalBites === 1 ? "" : "s"}
-                </span>
-              </p>
+            {submitted ? (
+              <>
+                <p className="text-lg font-semibold">You've drawn first bite! 🥪</p>
+                <p className="mt-1 text-sm text-stone-500">
+                  Once it&apos;s approved, share it and see where everyone else bites.
+                </p>
+              </>
             ) : (
-              <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
+              <>
+                <p className="text-lg font-semibold">{outlierLabel(state.percentile)}</p>
+                {state.totalBites > 0 ? (
+                  <p className="mt-1 text-sm text-stone-500">
+                    Your bite was more central than{" "}
+                    <span className="font-medium text-stone-700">
+                      {state.percentile}% of biter{state.totalBites === 1 ? "" : "s"}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
+                )}
+              </>
             )}
           </div>
           {showNudge && !userId && (
@@ -643,13 +665,15 @@ export function BiteCanvas({ sandwichId, title, imageUrl, initialBites }: Props)
               </a>
             </div>
           )}
-          <button
-            onClick={handleShare}
-            disabled={isSharing}
-            className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
-          >
-            {isSharing ? "Preparing…" : "Share my bite"}
-          </button>
+          {!submitted && (
+            <button
+              onClick={handleShare}
+              disabled={isSharing}
+              className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+            >
+              {isSharing ? "Preparing…" : "Share my bite"}
+            </button>
+          )}
           <NextButton />
         </div>
       )}

@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trackServer } from "@/lib/track-server";
+import { generateSlug } from "@/lib/slug";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -29,16 +30,20 @@ export async function saveSandwich(args: {
   uploadedBy?: string | null;
 }) {
   const supabase = createAdminClient();
+  const id = crypto.randomUUID();
+  const slug = generateSlug(args.title, id);
   const { data, error } = await supabase
     .from("sandwiches")
     .insert({
+      id,
+      slug,
       title: args.title.trim(),
       description: args.description.trim() || null,
       image_url: args.imageUrl,
       approved: args.approved ?? false,
       ...(args.uploadedBy ? { uploaded_by: args.uploadedBy } : {}),
     })
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (!error && data?.id) {
@@ -61,7 +66,7 @@ export async function saveSandwich(args: {
     if (emailError) console.error("Resend error:", emailError);
   }
 
-  return { error: error?.message ?? null, id: data?.id ?? null };
+  return { error: error?.message ?? null, id: data?.id ?? null, slug: data?.slug ?? null };
 }
 
 export async function checkBiteMilestones(sandwichId: string, userId: string) {
@@ -69,7 +74,7 @@ export async function checkBiteMilestones(sandwichId: string, userId: string) {
 
   const [userBiteResult, sandwichResult, sandwichBiteResult] = await Promise.all([
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("sandwiches").select("uploaded_by, title").eq("id", sandwichId).single(),
+    supabase.from("sandwiches").select("uploaded_by, title, slug").eq("id", sandwichId).single(),
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("sandwich_id", sandwichId),
   ]);
 
@@ -101,7 +106,7 @@ export async function checkBiteMilestones(sandwichId: string, userId: string) {
           from: "Adam @ Bitemap <hello@bitemap.food>",
           to: email,
           subject: `Your sando just hit 5 bites 🥪`,
-          text: `"${sandwich.title}" has received 5 bites times on Bitemap. Share it with friends to get more bites!\n\nhttps://bitemap.food/sandwich/${sandwichId}`,
+          text: `"${sandwich.title}" has received 5 bites on Bitemap. Share it with friends to get more bites!\n\nhttps://bitemap.food/sandwich/${sandwich.slug ?? sandwichId}`,
         })
       );
       emailJobs.push(trackServer(sandwich.uploaded_by, "User Notified", { notification: "5th Sandwich Bite" }));

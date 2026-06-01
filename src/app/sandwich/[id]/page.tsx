@@ -11,10 +11,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const { data: sandwich } = await supabase
     .from("sandwiches")
-    .select("title, description, image_url")
-    .eq("id", id)
+    .select("title, description, image_url, slug")
+    .eq(isUuid ? "id" : "slug", id)
     .single();
 
   if (!sandwich) return {};
@@ -23,7 +24,7 @@ export async function generateMetadata({
     ? `${sandwich.description} — Tap where you'd take your next bite on Bitemap.`
     : `Tap where you'd bite this ${sandwich.title}. See where everyone else bites too.`;
 
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/sandwich/${id}`;
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/sandwich/${sandwich.slug ?? id}`;
 
   return {
     title: `${sandwich.title} — Bitemap`,
@@ -50,19 +51,25 @@ export default async function SandwichPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string }>;
+  searchParams: Promise<{ submitted?: string; share?: string }>;
 }) {
   const { id } = await params;
-  const { submitted } = await searchParams;
+  const { submitted, share } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: sandwich }, { data: bites }] =
-    await Promise.all([
-      supabase.from("sandwiches").select("*").eq("id", id).single(),
-      supabase.from("bites").select("x, y").eq("sandwich_id", id),
-    ]);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const { data: sandwich } = await supabase
+    .from("sandwiches")
+    .select("*")
+    .eq(isUuid ? "id" : "slug", id)
+    .single();
 
   if (!sandwich) notFound();
+
+  const { data: bites } = await supabase
+    .from("bites")
+    .select("x, y")
+    .eq("sandwich_id", sandwich.id);
 
   let uploaderName: string | null = null;
   if (sandwich.uploaded_by) {
@@ -88,14 +95,17 @@ export default async function SandwichPage({
       )}
       {submitted && !sandwich.approved && (
         <p className="mb-4 text-center text-sm text-amber-600">
-          Your sandwich is pending review and will appear for others once approved.
+          We&apos;ll send you an email once your sandwich is live — usually just a few minutes.
         </p>
       )}
       <BiteCanvas
         sandwichId={sandwich.id}
+        slug={sandwich.slug}
         title={sandwich.title}
         imageUrl={sandwich.image_url}
         initialBites={bites ?? []}
+        autoShare={share === "1"}
+        submitted={!!submitted}
       />
     </div>
   );
