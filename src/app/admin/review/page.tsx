@@ -1,17 +1,25 @@
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { approveSandwich, rejectSandwich, renameSandwich } from "./actions";
+import { TimelapseExporter } from "@/components/TimelapseExporter";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminReviewPage() {
   const supabase = await createClient();
 
-  const { data: pending } = await supabase
-    .from("sandwiches")
-    .select("*")
-    .eq("approved", false)
-    .order("created_at", { ascending: true });
+  const [{ data: pending }, { data: approved }] = await Promise.all([
+    supabase
+      .from("sandwiches")
+      .select("*")
+      .eq("approved", false)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("sandwiches_with_count")
+      .select("*")
+      .eq("approved", true)
+      .order("bite_count", { ascending: false }),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -87,6 +95,38 @@ export default async function AdminReviewPage() {
                   </button>
                 </form>
               </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="mb-4 mt-12 text-lg font-bold">Approved sandwiches</h2>
+      <div className="space-y-3">
+        {approved?.map((sandwich) => (
+          <div
+            key={sandwich.id}
+            className="flex items-center gap-4 rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
+          >
+            <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-stone-100">
+              <Image
+                src={sandwich.image_url}
+                alt={sandwich.title}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{sandwich.title}</p>
+              <p className="text-xs text-stone-400">
+                {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
+              </p>
+              <TimelapseExporter
+                sandwichId={sandwich.id}
+                title={sandwich.title}
+                imageUrl={sandwich.image_url}
+                biteCount={sandwich.bite_count}
+              />
             </div>
           </div>
         ))}
