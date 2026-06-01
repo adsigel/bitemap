@@ -27,20 +27,29 @@ type State =
   | { phase: "done"; point: Point; percentile: number; totalBites: number }
   | { phase: "already_bitten"; point: Point };
 
-// Compare against other biters only — don't include the user's own bite.
+// Radius for neighbour counting — 10% of the normalised image dimension.
+// Tune upward if clusters feel too tight, downward if everything reads as "in the pack".
+const DENSITY_RADIUS = 0.10;
+
+// Ranks the user by local density rather than distance from a global centre.
+// High return value = few neighbours nearby = maverick.
+// Low return value  = many neighbours nearby = in the pack.
 function computePercentile(myPoint: Point, otherBites: Point[]): number {
   if (otherBites.length === 0) return 50;
 
-  const centroidX = otherBites.reduce((s, b) => s + b.x, 0) / otherBites.length;
-  const centroidY = otherBites.reduce((s, b) => s + b.y, 0) / otherBites.length;
+  const countNeighbours = (p: Point, pool: Point[]) =>
+    pool.filter(b => Math.hypot(b.x - p.x, b.y - p.y) < DENSITY_RADIUS).length;
 
-  const myDist = Math.hypot(myPoint.x - centroidX, myPoint.y - centroidY);
-  const otherDists = otherBites.map((b) =>
-    Math.hypot(b.x - centroidX, b.y - centroidY)
+  const myNeighbours = countNeighbours(myPoint, otherBites);
+
+  // Each other bite's neighbour count, excluding itself from its own pool
+  const otherCounts = otherBites.map((b, i) =>
+    countNeighbours(b, otherBites.filter((_, j) => j !== i))
   );
 
-  const moreCentralCount = otherDists.filter((d) => d < myDist).length;
-  return Math.round((moreCentralCount / otherDists.length) * 100);
+  // Fraction of others with MORE neighbours than the user → high = maverick
+  const moreDense = otherCounts.filter(n => n > myNeighbours).length;
+  return Math.round((moreDense / otherCounts.length) * 100);
 }
 
 function outlierLabel(percentile: number): string {
