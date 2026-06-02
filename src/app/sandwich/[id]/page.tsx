@@ -51,10 +51,10 @@ export default async function SandwichPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; share?: string }>;
+  searchParams: Promise<{ submitted?: string; share?: string; ref?: string }>;
 }) {
   const { id } = await params;
-  const { submitted, share } = await searchParams;
+  const { submitted, share, ref } = await searchParams;
   const supabase = await createClient();
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -114,7 +114,7 @@ export default async function SandwichPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <SandwichViewTracker sandwichId={sandwich.id} title={sandwich.title} />
+      <SandwichViewTracker sandwichId={sandwich.id} title={sandwich.title} ref={ref} />
       <div className="mb-3">
         <h1 className="text-xl font-bold">{sandwich.title}</h1>
       </div>
@@ -138,6 +138,7 @@ export default async function SandwichPage({
         isHot={isHot}
         autoShare={share === "1"}
         submitted={!!submitted}
+        inboundRef={ref}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getOrCreateSessionId } from "@/lib/session";
 import { track } from "@/lib/track";
 import { checkBiteMilestones } from "@/lib/sandwich-actions";
+import { getOrCreateReferralToken } from "@/lib/referral-actions";
 
 interface Point {
   x: number;
@@ -30,6 +31,7 @@ interface Props {
   isHot?: boolean;
   autoShare?: boolean;
   submitted?: boolean;
+  inboundRef?: string | null;
 }
 
 type State =
@@ -365,7 +367,7 @@ async function pickNextSandwichId(
   return pool[Math.floor(Math.random() * pool.length)].id;
 }
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted, inboundRef }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -473,7 +475,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     const updatedBites = [...allBites, point];
     setAllBites(updatedBites);
     setState({ phase: "done", point, percentile, totalBites: allBites.length });
-    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length });
+    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, ...(inboundRef ? { referred_by: inboundRef } : {}) });
   }, [state, allBites, sandwichId, supabase, userId]);
 
   const handleReset = useCallback(() => {
@@ -513,7 +515,8 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         if (otherBites.length > 0) percentile = computePercentile(state.point, otherBites);
       }
       const n = allBites.length;
-      const sandwichUrl = `https://bitemap.food/sandwich/${slug ?? sandwichId}`;
+      const refToken = userId ? await getOrCreateReferralToken(userId).catch(() => null) : null;
+      const sandwichUrl = `https://bitemap.food/sandwich/${slug ?? sandwichId}${refToken ? `?ref=${refToken}` : ""}`;
       let caption: string;
       if (percentile === null || n < 15) {
         caption = `Brand new sandwich on Bitemap — be one of the first to call where you'd bite this ${title}: ${sandwichUrl}`;
