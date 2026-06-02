@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { BiteCanvas, type BiterAvatar } from "@/components/BiteCanvas";
-import { SandwichViewTracker } from "@/components/SandwichViewTracker";
+import { ViewTracker } from "@/components/ViewTracker";
 
 export async function generateMetadata({
   params,
@@ -114,7 +114,7 @@ export default async function SandwichPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <SandwichViewTracker sandwichId={sandwich.id} title={sandwich.title} ref={ref} />
+      <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, ...(ref ? { referred_by: ref } : {}) }} />
       <div className="mb-3">
         <h1 className="text-xl font-bold">{sandwich.title}</h1>
       </div>

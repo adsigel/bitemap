@@ -18,15 +18,15 @@ Middleware redirects blocked admin requests to `/sign-in?next=/admin/review`, bu
 
 ## Duplicated code
 
-### 2. `Point` interface defined in 4 files
+### 2. `Point` interface defined in 4 files ✅ fixed 2026-06-02
 Defined identically in `BiteCanvas.tsx`, `PolygonEditor.tsx`, `StaticHeatmap.tsx`, `TimelapseExporter.tsx`.
 **Fix:** move to `src/lib/types.ts` (clearing its dead content first — see #1) and import everywhere.
 
-### 3. `drawHeatmap` duplicated in 3 files
+### 3. `drawHeatmap` duplicated in 3 files ✅ fixed 2026-06-02
 Byte-for-byte identical in `BiteCanvas.tsx` and `StaticHeatmap.tsx`; same algorithm with hardcoded dimensions in `TimelapseExporter.tsx`.
 **Fix:** extract to `src/lib/draw-heatmap.ts` with signature `(canvas, bites, width, height)`.
 
-### 5. `ProfileViewTracker` and `SandwichViewTracker` are the same pattern
+### 5. `ProfileViewTracker` and `SandwichViewTracker` are the same pattern ✅ fixed 2026-06-02
 Both are client components that fire one `track()` call on mount and return null.
 **Fix:** replace both with a single `src/components/ViewTracker.tsx` that accepts `event` and `properties` props.
 

@@ -2,7 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DisplayNameEditor } from "@/components/DisplayNameEditor";
-import { ProfileViewTracker } from "@/components/ProfileViewTracker";
+import { ViewTracker } from "@/components/ViewTracker";
 
 function computePercentile(my: { x: number; y: number }, others: { x: number; y: number }[]): number {
   if (others.length === 0) return 50;
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-8">
-      <ProfileViewTracker />
+      <ViewTracker event="Profile Viewed" />
       <div className="flex items-center gap-4">
         {profile?.avatar_url ? (
           <Image
