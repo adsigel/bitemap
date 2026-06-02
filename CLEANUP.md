@@ -34,11 +34,11 @@ Both are client components that fire one `track()` call on mount and return null
 
 ## Dead / redundant code
 
-### 1. `src/lib/types.ts` — never imported
+### 1. `src/lib/types.ts` — never imported ✅ fixed 2026-06-02
 `Sandwich` and `Bite` interfaces defined but imported nowhere. Natural home for the shared `Point` type (see #2).
 **Fix:** clear current contents; add `Point` export.
 
-### 4. `src/app/admin/upload/actions.ts` — one-line re-export
+### 4. `src/app/admin/upload/actions.ts` — one-line re-export ✅ fixed 2026-06-02
 The entire file is `export { getSignedUploadUrl, saveSandwich } from "@/lib/sandwich-actions"`. Pure indirection with no value.
 **Fix:** delete the file; have `admin/upload/page.tsx` import directly from `@/lib/sandwich-actions`.
 

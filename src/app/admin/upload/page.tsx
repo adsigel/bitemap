@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { getSignedUploadUrl, saveSandwich } from "./actions";
+import { getSignedUploadUrl, saveSandwich } from "@/lib/sandwich-actions";
 
 export default function AdminUploadPage() {
   const formRef = useRef<HTMLFormElement>(null);
