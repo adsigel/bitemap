@@ -3,13 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export async function signInWithGoogle(sessionId: string, _formData?: FormData) {
+export async function signInWithGoogle(sessionId: string, next: string = "/", _formData?: FormData) {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?session_id=${sessionId}&next=${encodeURIComponent("/")}`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?session_id=${sessionId}&next=${encodeURIComponent(next)}`,
       queryParams: { access_type: "offline", prompt: "select_account" },
     },
   });

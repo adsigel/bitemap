@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data: sandwiches } = await supabase.from("sandwiches").select("id");
+  const { data: sandwiches } = await supabase.from("sandwiches").select("id").eq("approved", true);
 
   if (!sandwiches?.length) {
     return (
