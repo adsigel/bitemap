@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { approveSandwich, rejectSandwich, renameSandwich } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
+import { PolygonEditor } from "@/components/PolygonEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -36,15 +36,11 @@ export default async function AdminReviewPage() {
             key={sandwich.id}
             className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm"
           >
-            <div className="relative aspect-[4/3] w-full bg-stone-100">
-              <Image
-                src={sandwich.image_url}
-                alt={sandwich.title}
-                fill
-                className="object-cover"
-                sizes="672px"
-              />
-            </div>
+            <PolygonEditor
+              sandwichId={sandwich.id}
+              imageUrl={sandwich.image_url}
+              initialBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
+            />
             <div className="p-4">
               <form action={renameSandwich.bind(null, sandwich.id)} className="mb-1 flex gap-2">
                 <input
@@ -101,22 +97,18 @@ export default async function AdminReviewPage() {
       </div>
 
       <h2 className="mb-4 mt-12 text-lg font-bold">Approved sandwiches</h2>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {approved?.map((sandwich) => (
           <div
             key={sandwich.id}
-            className="flex items-center gap-4 rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
+            className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm"
           >
-            <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-stone-100">
-              <Image
-                src={sandwich.image_url}
-                alt={sandwich.title}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
+            <PolygonEditor
+              sandwichId={sandwich.id}
+              imageUrl={sandwich.image_url}
+              initialBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
+            />
+            <div className="p-4">
               <form action={renameSandwich.bind(null, sandwich.id)} className="mb-1 flex gap-2">
                 <input
                   name="title"

@@ -61,6 +61,14 @@ export async function approveSandwich(id: string) {
   revalidatePath("/admin/review");
 }
 
+export async function saveBounds(id: string, points: { x: number; y: number }[] | null) {
+  const supabase = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("sandwiches").update({ bite_bounds: points }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/review");
+}
+
 export async function rejectSandwich(id: string) {
   const supabase = createAdminClient();
   // Delete the DB record; storage object can be cleaned up separately

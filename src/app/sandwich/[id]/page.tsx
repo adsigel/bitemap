@@ -132,6 +132,7 @@ export default async function SandwichPage({
         title={sandwich.title}
         imageUrl={sandwich.image_url}
         initialBites={bites ?? []}
+        biteBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
         uploaderName={uploaderName}
         biters={biters}
         isHot={isHot}

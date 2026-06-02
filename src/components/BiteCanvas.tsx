@@ -24,6 +24,7 @@ interface Props {
   title: string;
   imageUrl: string;
   initialBites: Point[];
+  biteBounds?: Point[] | null;
   uploaderName?: string | null;
   biters?: BiterAvatar[];
   isHot?: boolean;
@@ -37,6 +38,19 @@ type State =
   | { phase: "submitting"; point: Point }
   | { phase: "done"; point: Point; percentile: number; totalBites: number }
   | { phase: "already_bitten"; point: Point };
+
+function pointInPolygon(p: Point, polygon: Point[]): boolean {
+  let inside = false;
+  const n = polygon.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    if (((yi > p.y) !== (yj > p.y)) && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
 // Radius for neighbour counting — 10% of the normalised image dimension.
 // Tune upward if clusters feel too tight, downward if everything reads as "in the pack".
@@ -351,7 +365,7 @@ async function pickNextSandwichId(
   return pool[Math.floor(Math.random() * pool.length)].id;
 }
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, uploaderName, biters = [], isHot, autoShare, submitted }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -363,6 +377,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, up
   const [userId, setUserId] = useState<string | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
+  const [showOobMessage, setShowOobMessage] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -406,9 +421,17 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, up
       const rect = e.currentTarget.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
+
+      if (biteBounds && biteBounds.length >= 3 && !pointInPolygon({ x, y }, biteBounds)) {
+        track("Bite Out of Bounds", { sandwich_id: sandwichId, x, y });
+        setShowOobMessage(true);
+        setTimeout(() => setShowOobMessage(false), 2000);
+        return;
+      }
+
       setState({ phase: "placed", point: { x, y } });
     },
-    [state.phase]
+    [state.phase, biteBounds, sandwichId]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -604,12 +627,20 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, up
           </div>
         )}
 
-        {state.phase === "idle" && (
+        {state.phase === "idle" && !showOobMessage && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-8">
             <p className="text-center text-sm font-semibold text-white">
               Tap where you&apos;d take your next bite
             </p>
             <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-white/50" />
+          </div>
+        )}
+
+        {showOobMessage && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div style={{ background: 'rgba(0,0,0,0.72)', borderRadius: '12px', padding: '12px 20px', color: 'white', fontSize: '14px', fontWeight: 600, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+              That doesn&apos;t look like part of the sandwich. Try again?
+            </div>
           </div>
         )}
 
