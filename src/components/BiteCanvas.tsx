@@ -533,7 +533,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text: caption });
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share" });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", ...(userId ? { user_id: userId } : {}) });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -541,7 +541,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         a.download = "my-bite.jpg";
         a.click();
         URL.revokeObjectURL(url);
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "download" });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "download", ...(userId ? { user_id: userId } : {}) });
       }
     } catch {
       // User cancelled share or export failed — no-op
