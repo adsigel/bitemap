@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { saveBounds } from "@/app/admin/review/actions";
-
-interface Point { x: number; y: number; }
+import type { Point } from "@/lib/types";
 
 interface Props {
   sandwichId: string;

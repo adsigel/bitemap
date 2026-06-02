@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-
-interface Point {
-  x: number;
-  y: number;
-}
+import type { Point } from "@/lib/types";
+import { drawHeatmap } from "@/lib/draw-heatmap";
 
 interface Props {
   sandwichId: string;
@@ -17,41 +14,6 @@ interface Props {
 
 const W = 1200;
 const H = 900;
-
-function drawHeatmap(ctx: CanvasRenderingContext2D, bites: Point[]) {
-  if (bites.length === 0) return;
-  const radius = Math.min(W, H) * 0.13;
-
-  ctx.save();
-  ctx.globalCompositeOperation = "lighter";
-  bites.forEach((b) => {
-    const px = b.x * W;
-    const py = b.y * H;
-    const g = ctx.createRadialGradient(px, py, 0, px, py, radius);
-    g.addColorStop(0, "rgba(255,80,0,0.55)");
-    g.addColorStop(0.4, "rgba(255,120,0,0.25)");
-    g.addColorStop(1, "rgba(255,80,0,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(px, py, radius, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  ctx.globalCompositeOperation = "source-over";
-  bites.forEach((b) => {
-    const px = b.x * W;
-    const py = b.y * H;
-    ctx.fillStyle = "rgba(255,60,0,0.75)";
-    ctx.beginPath();
-    ctx.arc(px, py, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  });
-
-  ctx.restore();
-}
 
 function drawBase(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
   const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -136,7 +98,7 @@ export function TimelapseExporter({ sandwichId, title, imageUrl, biteCount }: Pr
         const accumulated = bites.slice(0, (i + 1) * bitesPerFrame);
         ctx.clearRect(0, 0, W, H);
         drawBase(ctx, img);
-        drawHeatmap(ctx, accumulated);
+        drawHeatmap(canvas, accumulated, W, H);
         await new Promise((r) => setTimeout(r, 1000 / FRAME_RATE));
       }
 

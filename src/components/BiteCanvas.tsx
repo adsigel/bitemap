@@ -8,11 +8,8 @@ import { getOrCreateSessionId } from "@/lib/session";
 import { track } from "@/lib/track";
 import { checkBiteMilestones } from "@/lib/sandwich-actions";
 import { getOrCreateReferralToken } from "@/lib/referral-actions";
-
-interface Point {
-  x: number;
-  y: number;
-}
+import type { Point } from "@/lib/types";
+import { drawHeatmap } from "@/lib/draw-heatmap";
 
 export interface BiterAvatar {
   avatarUrl: string | null;
@@ -91,44 +88,6 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function drawHeatmap(
-  canvas: HTMLCanvasElement,
-  bites: Point[],
-  width: number,
-  height: number
-) {
-  const ctx = canvas.getContext("2d")!;
-  if (bites.length === 0) return;
-
-  const radius = Math.min(width, height) * 0.13;
-
-  ctx.globalCompositeOperation = "lighter";
-  bites.forEach((bite) => {
-    const px = bite.x * width;
-    const py = bite.y * height;
-    const gradient = ctx.createRadialGradient(px, py, 0, px, py, radius);
-    gradient.addColorStop(0, "rgba(255, 80, 0, 0.55)");
-    gradient.addColorStop(0.4, "rgba(255, 120, 0, 0.25)");
-    gradient.addColorStop(1, "rgba(255, 80, 0, 0)");
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(px, py, radius, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  ctx.globalCompositeOperation = "source-over";
-  bites.forEach((bite) => {
-    const px = bite.x * width;
-    const py = bite.y * height;
-    ctx.fillStyle = "rgba(255, 60, 0, 0.75)";
-    ctx.beginPath();
-    ctx.arc(px, py, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  });
-}
 
 async function generateShareImage(
   imageUrl: string,
