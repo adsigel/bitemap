@@ -81,8 +81,8 @@ export default async function SandwichPage({
     uploaderName = uploader?.display_name ?? null;
   }
 
-  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  const [{ data: recentBites }, { count: hotBiteCount }] = await Promise.all([
+  const fortyEightHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: recentBites }, { count: recentBiteCount }] = await Promise.all([
     supabase
       .from("bites")
       .select("user_id")
@@ -95,7 +95,7 @@ export default async function SandwichPage({
       .eq("sandwich_id", sandwich.id)
       .gt("created_at", fortyEightHoursAgo),
   ]);
-  const isHot = (hotBiteCount ?? 0) >= 5;
+  const isHot = (recentBiteCount ?? 0) >= 10;
 
   const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
   const profileMap = new Map<string, { avatar_url: string | null; display_name: string }>();
