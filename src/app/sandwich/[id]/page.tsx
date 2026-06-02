@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { BiteCanvas } from "@/components/BiteCanvas";
+import { BiteCanvas, type BiterAvatar } from "@/components/BiteCanvas";
 import { SandwichViewTracker } from "@/components/SandwichViewTracker";
 
 export async function generateMetadata({
@@ -81,14 +81,42 @@ export default async function SandwichPage({
     uploaderName = uploader?.display_name ?? null;
   }
 
+  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const [{ data: recentBites }, { count: hotBiteCount }] = await Promise.all([
+    supabase
+      .from("bites")
+      .select("user_id")
+      .eq("sandwich_id", sandwich.id)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("bites")
+      .select("*", { count: "exact", head: true })
+      .eq("sandwich_id", sandwich.id)
+      .gt("created_at", fortyEightHoursAgo),
+  ]);
+  const isHot = (hotBiteCount ?? 0) >= 5;
+
+  const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
+  const profileMap = new Map<string, { avatar_url: string | null; display_name: string }>();
+  if (loggedInIds.length > 0) {
+    const { data: biterProfiles } = await supabase
+      .from("profiles")
+      .select("id, avatar_url, display_name")
+      .in("id", loggedInIds);
+    biterProfiles?.forEach(p => profileMap.set(p.id, p));
+  }
+
+  const biters: BiterAvatar[] = (recentBites ?? []).map(b => ({
+    avatarUrl: b.user_id ? (profileMap.get(b.user_id)?.avatar_url ?? null) : null,
+    initial: b.user_id ? (profileMap.get(b.user_id)?.display_name?.[0]?.toUpperCase() ?? null) : null,
+  }));
+
   return (
     <div className="mx-auto max-w-2xl">
       <SandwichViewTracker sandwichId={sandwich.id} title={sandwich.title} />
-      <div className="mb-3 flex items-center justify-between gap-4">
+      <div className="mb-3">
         <h1 className="text-xl font-bold">{sandwich.title}</h1>
-        <span className="shrink-0 text-sm text-stone-500">
-          {uploaderName ? `Added by ${uploaderName}` : "Added anonymously"}
-        </span>
       </div>
       {sandwich.description && (
         <p className="mb-2 text-stone-500">{sandwich.description}</p>
@@ -104,6 +132,9 @@ export default async function SandwichPage({
         title={sandwich.title}
         imageUrl={sandwich.image_url}
         initialBites={bites ?? []}
+        uploaderName={uploaderName}
+        biters={biters}
+        isHot={isHot}
         autoShare={share === "1"}
         submitted={!!submitted}
       />

@@ -13,12 +13,20 @@ interface Point {
   y: number;
 }
 
+export interface BiterAvatar {
+  avatarUrl: string | null;
+  initial: string | null;
+}
+
 interface Props {
   sandwichId: string;
   slug?: string;
   title: string;
   imageUrl: string;
   initialBites: Point[];
+  uploaderName?: string | null;
+  biters?: BiterAvatar[];
+  isHot?: boolean;
   autoShare?: boolean;
   submitted?: boolean;
 }
@@ -343,7 +351,7 @@ async function pickNextSandwichId(
   return pool[Math.floor(Math.random() * pool.length)].id;
 }
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, autoShare, submitted }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, uploaderName, biters = [], isHot, autoShare, submitted }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -597,12 +605,71 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, au
         )}
 
         {state.phase === "idle" && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent px-4 py-3">
-            <p className="text-center text-sm font-medium text-white">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-8">
+            <p className="text-center text-sm font-semibold text-white">
               Tap where you&apos;d take your next bite
             </p>
+            <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-white/50" />
           </div>
         )}
+
+        {(isHot || allBites.length < 5) && (
+          <div
+            className="pointer-events-none absolute z-10"
+            style={{ top: '0.75rem', right: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}
+          >
+            {isHot && (
+              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
+                hot 🔥
+              </span>
+            )}
+            {allBites.length < 5 && (
+              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
+                new ✨
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-xs text-stone-400">
+          {uploaderName ? `Added by ${uploaderName}` : "Added anonymously"}
+        </span>
+        <div className="flex items-center gap-2">
+          {biters.length > 0 && (
+            <div className="flex items-center">
+              {biters.map((b, i) => (
+                <div
+                  key={i}
+                  className="relative h-6 w-6 overflow-hidden rounded-full border-2 border-white"
+                  style={{ zIndex: biters.length - i, marginLeft: i === 0 ? 0 : -8 }}
+                >
+                  {b.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : b.initial ? (
+                    <div className="flex h-full w-full items-center justify-center bg-stone-300 text-[9px] font-bold text-stone-600">
+                      {b.initial}
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center"
+                      style={{ background: ['#d6d3d1', '#a8a29e', '#78716c'][i % 3] }}
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="white">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <span className="text-xs text-stone-400">
+            {allBites.length} {allBites.length === 1 ? "bite" : "bites"}
+          </span>
+        </div>
       </div>
 
       {state.phase === "placed" && (
