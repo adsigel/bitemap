@@ -19,14 +19,14 @@ export async function Header() {
   }
 
   return (
-    <header className="flex items-center border-b border-stone-200 bg-white px-4 py-3">
+    <header className="flex items-center border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
       <div className="flex flex-1 items-center">
         {user && profile ? (
           <AvatarMenu displayName={profile.display_name} avatarUrl={profile.avatar_url} />
         ) : (
           <a
             href="/sign-in"
-            className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+            className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
           >
             Sign in
           </a>

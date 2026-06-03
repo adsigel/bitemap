@@ -56,35 +56,27 @@ export async function generateShareImage(
   // Fetch via proxy to avoid canvas CORS taint
   const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
   const imageBlob = await fetch(proxyUrl).then((r) => r.blob());
-  const blobUrl = URL.createObjectURL(imageBlob);
-  try {
-    const img = new window.Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = reject;
-      img.src = blobUrl;
-    });
+  // createImageBitmap with imageOrientation respects EXIF rotation,
+  // unlike drawImage(img) which uses raw pixel data and ignores it.
+  const imageBitmap = await createImageBitmap(imageBlob, { imageOrientation: "from-image" });
 
-    // Cover-fit into the image band
-    const imgAspect = img.naturalWidth / img.naturalHeight;
-    const canvasAspect = W / IMG_H;
-    let drawW: number, drawH: number, offsetX: number, offsetY: number;
-    if (imgAspect > canvasAspect) {
-      drawH = IMG_H; drawW = IMG_H * imgAspect;
-      offsetX = (W - drawW) / 2; offsetY = HEADER_H;
-    } else {
-      drawW = W; drawH = W / imgAspect;
-      offsetX = 0; offsetY = HEADER_H + (IMG_H - drawH) / 2;
-    }
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, HEADER_H, W, IMG_H);
-    ctx.clip();
-    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
-    ctx.restore();
-  } finally {
-    URL.revokeObjectURL(blobUrl);
+  // Cover-fit into the image band
+  const imgAspect = imageBitmap.width / imageBitmap.height;
+  const canvasAspect = W / IMG_H;
+  let drawW: number, drawH: number, offsetX: number, offsetY: number;
+  if (imgAspect > canvasAspect) {
+    drawH = IMG_H; drawW = IMG_H * imgAspect;
+    offsetX = (W - drawW) / 2; offsetY = HEADER_H;
+  } else {
+    drawW = W; drawH = W / imgAspect;
+    offsetX = 0; offsetY = HEADER_H + (IMG_H - drawH) / 2;
   }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, HEADER_H, W, IMG_H);
+  ctx.clip();
+  ctx.drawImage(imageBitmap, offsetX, offsetY, drawW, drawH);
+  ctx.restore();
 
   // Heatmap — draw to a temp canvas, then blit at HEADER_H offset
   const heatmapCanvas = document.createElement("canvas");

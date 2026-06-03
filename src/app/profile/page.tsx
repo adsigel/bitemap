@@ -88,24 +88,24 @@ export default async function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center">
+        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
           <p className="text-2xl font-bold">{biteCount ?? 0}</p>
-          <p className="text-xs text-stone-500">Bites Taken</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400">Bites Taken</p>
         </div>
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center">
+        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
           <p className="text-2xl font-bold">{userSandwiches?.length ?? 0}</p>
-          <p className="text-xs text-stone-500">Sandos Submitted</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400">Sandos Submitted</p>
         </div>
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center">
+        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
           {commonalityScore !== null ? (
             <>
               <p className="text-2xl font-bold">{commonalityScore}</p>
-              <p className="text-xs text-stone-500">Bitemark</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">Bitemark</p>
             </>
           ) : (
             <>
               <p className="text-2xl font-bold text-stone-300">—</p>
-              <p className="text-xs text-stone-500">Bitemark</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">Bitemark</p>
             </>
           )}
         </div>
@@ -125,9 +125,9 @@ export default async function ProfilePage() {
             {userSandwiches.map((s) => (
               <li
                 key={s.id}
-                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-800"
               >
-                <span className="mr-3 truncate font-medium text-stone-800">{s.title}</span>
+                <span className="mr-3 truncate font-medium text-stone-800 dark:text-stone-100">{s.title}</span>
                 <div className="flex shrink-0 items-center gap-2">
                   {s.approved ? (
                     <>

@@ -247,7 +247,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     <button
       onClick={handleNext}
       disabled={navigating}
-      className="block w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50"
+      className="block w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
     >
       {navigating ? "Loading…" : "Next sandwich →"}
     </button>
@@ -392,7 +392,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           </button>
           <button
             onClick={handleReset}
-            className="rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-stone-600 transition hover:bg-stone-50"
+            className="rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-stone-600 transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
           >
             Move it
           </button>
@@ -400,14 +400,14 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       )}
 
       {state.phase === "submitting" && (
-        <div className="rounded-lg bg-stone-100 px-4 py-3 text-center text-stone-500">
+        <div className="rounded-lg bg-stone-100 px-4 py-3 text-center text-stone-500 dark:bg-stone-800 dark:text-stone-400">
           Registering bite…
         </div>
       )}
 
       {state.phase === "done" && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-4 text-center">
+          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-4 text-center dark:border-orange-900 dark:bg-orange-950">
             {submitted ? (
               <>
                 <p className="text-lg font-semibold">You&apos;ve drawn first bite! 🥪</p>
@@ -461,7 +461,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       {state.phase === "already_bitten" && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-4 text-center text-stone-500">
+          <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-4 text-center text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
             You&apos;ve already bitten this one.
           </div>
           <button

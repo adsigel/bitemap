@@ -69,6 +69,15 @@ export async function saveBounds(id: string, points: { x: number; y: number }[] 
   revalidatePath("/admin/review");
 }
 
+export async function approveWithBounds(id: string, bounds: { x: number; y: number }[] | null) {
+  if (bounds && bounds.length >= 3) {
+    const supabase = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("sandwiches").update({ bite_bounds: bounds }).eq("id", id);
+  }
+  await approveSandwich(id);
+}
+
 export async function unpublishSandwich(id: string) {
   const supabase = createAdminClient();
   await supabase.from("sandwiches").update({ approved: false }).eq("id", id);

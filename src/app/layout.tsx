@@ -20,14 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${fustat.className} flex min-h-screen flex-col bg-stone-50 text-stone-900 antialiased`}>
+      <body className={`${fustat.className} flex min-h-screen flex-col bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100`}>
         <AmplitudeProvider apiKey={process.env.AMPLITUDE_API_KEY!}>
         <Suspense fallback={null}><AccountCreatedTracker /></Suspense>
         <Header />
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
           {children}
         </main>
-        <footer className="border-t border-stone-200 bg-white px-4 py-3 text-xs text-stone-400">
+        <footer className="border-t border-stone-200 bg-white px-4 py-3 text-xs text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-500">
           <div className="flex items-center justify-center gap-6">
             <span>© 2026 Bitemap</span>
             <a href="/privacy" className="hover:text-stone-600">Privacy</a>

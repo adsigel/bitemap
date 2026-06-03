@@ -9,6 +9,7 @@ interface Props {
   sandwichId: string;
   imageUrl: string;
   initialBounds: Point[] | null;
+  onPolygonChange?: (bounds: Point[] | null) => void;
 }
 
 // SVG coordinate space matches the 4:3 aspect ratio so circles stay round.
@@ -17,7 +18,7 @@ const H = 75;
 
 const CLOSE_THRESHOLD = 0.04; // normalised distance to snap-close on first point
 
-export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
+export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonChange }: Props) {
   const [saved, setSaved] = useState<Point[]>(initialBounds ?? []);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Point[]>([]);
@@ -38,6 +39,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
     setDraft([]);
     setClosed(false);
     setEditing(false);
+    onPolygonChange?.(saved.length >= 3 ? saved : null);
   }
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
@@ -50,6 +52,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
       const d = Math.hypot(x - draft[0].x, y - draft[0].y);
       if (d < CLOSE_THRESHOLD) {
         setClosed(true);
+        onPolygonChange?.(draft);
         return;
       }
     }
@@ -64,6 +67,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
       await saveBounds(sandwichId, draft);
       setSaved(draft);
       setEditing(false);
+      onPolygonChange?.(draft);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -80,6 +84,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
       setEditing(false);
       setDraft([]);
       setClosed(false);
+      onPolygonChange?.(null);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Clear failed");
     } finally {
@@ -177,7 +182,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds }: Props) {
             </span>
             {!closed && draft.length >= 3 && (
               <button
-                onClick={() => setClosed(true)}
+                onClick={() => { setClosed(true); onPolygonChange?.(draft); }}
                 className="font-medium text-orange-500 transition hover:text-orange-600"
               >
                 Close polygon
