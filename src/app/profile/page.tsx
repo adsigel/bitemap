@@ -13,7 +13,12 @@ function computePercentile(my: { x: number; y: number }, others: { x: number; y:
   return Math.round((moreCentral / others.length) * 100);
 }
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const { sort } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,10 +34,10 @@ export default async function ProfilePage() {
     supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).single(),
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase
-      .from("sandwiches")
-      .select("id, slug, title, approved, created_at")
+      .from("sandwiches_with_count")
+      .select("id, slug, title, approved, created_at, image_url, bite_count")
       .eq("uploaded_by", user.id)
-      .order("created_at", { ascending: false }),
+      .order(sort === "bites" ? "bite_count" : "created_at", { ascending: false }),
     supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
   ]);
 
@@ -120,35 +125,67 @@ export default async function ProfilePage() {
 
       {userSandwiches && userSandwiches.length > 0 && (
         <div>
-          <h2 className="mb-3 font-semibold">Your Sandos</h2>
-          <ul className="space-y-2">
-            {userSandwiches.map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-800"
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold">Your Sandos</h2>
+            <div className="flex gap-3 text-sm">
+              <a
+                href="/profile"
+                className={sort !== "bites" ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
               >
-                <span className="mr-3 truncate font-medium text-stone-800 dark:text-stone-100">{s.title}</span>
-                <div className="flex shrink-0 items-center gap-2">
-                  {s.approved ? (
-                    <>
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Approved
-                      </span>
-                      <a
-                        href={`/sandwich/${s.slug ?? s.id}`}
-                        className="text-sm text-orange-500 hover:underline"
-                      >
-                        View
-                      </a>
-                    </>
-                  ) : (
-                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
-                      Pending
-                    </span>
-                  )}
+                Most recent
+              </a>
+              <a
+                href="/profile?sort=bites"
+                className={sort === "bites" ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
+              >
+                Most bitten
+              </a>
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {userSandwiches.map((s) => {
+              const card = (
+                <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-800">
+                  <div
+                    className="relative shrink-0 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-700"
+                    style={{ width: 56, height: 56 }}
+                  >
+                    {s.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={s.image_url}
+                        alt={s.title}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-stone-800 dark:text-stone-100">{s.title}</p>
+                    <p className="text-sm text-stone-500 dark:text-stone-400">
+                      {s.bite_count ?? 0} {(s.bite_count ?? 0) === 1 ? "bite" : "bites"}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    s.approved
+                      ? "bg-green-100 text-green-700"
+                      : "bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400"
+                  }`}>
+                    {s.approved ? "Approved" : "Pending"}
+                  </span>
                 </div>
-              </li>
-            ))}
+              );
+              return (
+                <li key={s.id}>
+                  {s.approved ? (
+                    <a href={`/sandwich/${s.slug ?? s.id}`} className="block transition hover:opacity-80">
+                      {card}
+                    </a>
+                  ) : (
+                    card
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

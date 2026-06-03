@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { KillScreen, type RecommendedSandwich } from "@/components/KillScreen";
+import { ViewTracker } from "@/components/ViewTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -78,5 +79,10 @@ export default async function AllDonePage() {
     }
   }
 
-  return <KillScreen recommended={recommended} />;
+  return (
+    <>
+      <ViewTracker event="All Done Viewed" />
+      <KillScreen recommended={recommended} />
+    </>
+  );
 }
