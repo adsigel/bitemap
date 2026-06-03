@@ -167,7 +167,7 @@ export async function generateShareImage(
     subtext = "See where everyone else bites.";
   } else if (n < 15) {
     label = `Biter #${n}`;
-    subtext = `You're the ${ordinal(n)} person to bite this one — the map's still filling in.`;
+    subtext = `You're the ${ordinal(n)} person to bite this sando. Share it with friends to fill in the map.`;
   } else if (percentile >= 80) {
     label = "You went rogue";
     const tenths = Math.round(percentile / 10);

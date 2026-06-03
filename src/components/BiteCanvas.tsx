@@ -418,15 +418,19 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             ) : (
               <>
                 <p className="text-lg font-semibold">{outlierLabel(state.percentile)}</p>
-                {state.totalBites > 0 ? (
+                {state.totalBites === 0 ? (
+                  <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
+                ) : state.totalBites < 5 ? (
+                  <p className="mt-1 text-sm text-stone-500">
+                    Biter #{state.totalBites + 1} — the map&apos;s still filling in.
+                  </p>
+                ) : (
                   <p className="mt-1 text-sm text-stone-500">
                     Your bite was more central than{" "}
                     <span className="font-medium text-stone-700">
-                      {state.percentile}% of biter{state.totalBites === 1 ? "" : "s"}
+                      {state.percentile}% of biters
                     </span>
                   </p>
-                ) : (
-                  <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
                 )}
               </>
             )}
