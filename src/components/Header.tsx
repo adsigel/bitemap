@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
+import { HomeLink } from "@/components/HomeLink";
 
 export async function Header() {
   const supabase = await createClient();
@@ -32,9 +33,7 @@ export async function Header() {
         )}
       </div>
 
-      <a href="/" className="text-lg font-semibold tracking-tight">
-        🥪 Bitemap
-      </a>
+      <HomeLink />
 
       <div className="flex flex-1 items-center justify-end">
         <a
