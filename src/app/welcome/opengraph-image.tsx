@@ -1,10 +1,15 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const alt = "Bitemap — Where would you bite?";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function Image() {
+export default async function Image() {
+  const logoData = await readFile(join(process.cwd(), "public/bitemap.png"), "base64");
+  const logoSrc = `data:image/png;base64,${logoData}`;
+
   return new ImageResponse(
     (
       <div
@@ -19,7 +24,7 @@ export default function Image() {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 24 }}>
           <div
             style={{
               width: 72,
@@ -34,7 +39,7 @@ export default function Image() {
           >
             🥪
           </div>
-          <div style={{ fontSize: 64, fontWeight: 700, color: "#1c1917" }}>Bitemap</div>
+          <img src={logoSrc} height={64} style={{ display: "block" }} />
         </div>
         <div style={{ fontSize: 28, color: "#78716c", maxWidth: 700, textAlign: "center" }}>
           Where would you take your next bite?
