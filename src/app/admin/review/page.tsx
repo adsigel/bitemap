@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { approveSandwich, rejectSandwich, renameSandwich } from "./actions";
+import { approveSandwich, rejectSandwich, renameSandwich, unpublishSandwich } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
 import { PolygonEditor } from "@/components/PolygonEditor";
 
@@ -125,6 +125,20 @@ export default async function AdminReviewPage() {
               <p className="text-xs text-stone-400">
                 {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
               </p>
+              <form
+                action={async () => {
+                  "use server";
+                  await unpublishSandwich(sandwich.id);
+                }}
+                className="mt-3"
+              >
+                <button
+                  type="submit"
+                  className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 transition hover:bg-stone-50"
+                >
+                  Unpublish
+                </button>
+              </form>
               <TimelapseExporter
                 sandwichId={sandwich.id}
                 title={sandwich.title}

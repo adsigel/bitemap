@@ -69,6 +69,12 @@ export async function saveBounds(id: string, points: { x: number; y: number }[] 
   revalidatePath("/admin/review");
 }
 
+export async function unpublishSandwich(id: string) {
+  const supabase = createAdminClient();
+  await supabase.from("sandwiches").update({ approved: false }).eq("id", id);
+  revalidatePath("/admin/review");
+}
+
 export async function rejectSandwich(id: string) {
   const supabase = createAdminClient();
 
