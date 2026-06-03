@@ -410,7 +410,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-4 text-center">
             {submitted ? (
               <>
-                <p className="text-lg font-semibold">You've drawn first bite! 🥪</p>
+                <p className="text-lg font-semibold">You&apos;ve drawn first bite! 🥪</p>
                 <p className="mt-1 text-sm text-stone-500">
                   Once it&apos;s approved, share it and see where everyone else bites.
                 </p>
@@ -419,7 +419,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
               <>
                 <p className="text-lg font-semibold">{outlierLabel(state.percentile)}</p>
                 {state.totalBites === 0 ? (
-                  <p className="mt-1 text-sm text-stone-500">You&apos;re the first biter!</p>
+                  <p className="mt-1 text-sm text-stone-500">You&apos;ve drawn first bite! 🥪</p>
                 ) : state.totalBites < 5 ? (
                   <p className="mt-1 text-sm text-stone-500">
                     Biter #{state.totalBites + 1} — the map&apos;s still filling in.
