@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const NEW_USER_THRESHOLD = 2;
 const POOL_SIZE = 5;
+const BOT_UA = /facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|WhatsApp|TelegramBot|Applebot|Discordbot|bot|crawl|spider/i;
 
 export default async function HomePage() {
+  const ua = (await headers()).get("user-agent") ?? "";
+  if (BOT_UA.test(ua)) redirect("/welcome");
+
   const supabase = await createClient();
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("bitemap_session_id")?.value;

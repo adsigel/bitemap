@@ -6,6 +6,18 @@ import { StaticHeatmap } from "@/components/StaticHeatmap";
 export const metadata: Metadata = {
   title: "Bitemap — Where would you bite?",
   description: "Place your bite on a sandwich and see where everyone else bites too. Bitemap turns a simple question into something surprisingly social.",
+  openGraph: {
+    title: "Bitemap — Where would you bite?",
+    description: "Place your bite on a sandwich and see where everyone else bites too. Bitemap turns a simple question into something surprisingly social.",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/welcome`,
+    siteName: "Bitemap",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bitemap — Where would you bite?",
+    description: "Place your bite on a sandwich and see where everyone else bites too.",
+  },
 };
 
 export default async function WelcomePage() {
