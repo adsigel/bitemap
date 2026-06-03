@@ -304,9 +304,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
               transform: "translate(-50%, -50%)",
             }}
           >
-            <div className="absolute inset-0 rounded-full border-2 border-white/60 bg-orange-500/25" />
+            <div className="absolute inset-0 rounded-full border-2 border-white/60 bg-blue-600/25" />
             <div
-              className="absolute rounded-full border-2 border-white bg-orange-500 shadow-lg"
+              className="absolute rounded-full border-2 border-white bg-blue-600 shadow-lg"
               style={{
                 width: 32,
                 height: 32,
@@ -419,7 +419,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       {state.phase === "done" && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-4 text-center dark:border-orange-900 dark:bg-orange-950">
+          <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-4 text-center dark:border-orange-900 dark:bg-orange-950">
             {submitted ? (
               <>
                 <p className="text-lg font-semibold">You&apos;ve drawn first bite! 🥪</p>
@@ -450,7 +450,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             )}
           </div>
           {showNudge && !userId && (
-            <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-center">
+            <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-3 text-center">
               <p className="text-sm font-medium text-stone-700">You&apos;re on a roll! Save your bite history.</p>
               <a
                 href="/sign-in"

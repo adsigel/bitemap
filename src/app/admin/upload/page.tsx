@@ -96,7 +96,7 @@ export default function AdminUploadPage() {
             type="file"
             accept="image/*"
             required
-            className="w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+            className="w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-600 hover:file:bg-orange-100"
           />
         </div>
         <button

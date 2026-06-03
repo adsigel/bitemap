@@ -167,7 +167,7 @@ export default async function ProfilePage({
                   </div>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                     s.approved
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-emerald-100 text-emerald-700"
                       : "bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400"
                   }`}>
                     {s.approved ? "Approved" : "Pending"}

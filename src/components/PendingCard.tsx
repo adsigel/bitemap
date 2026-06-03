@@ -55,7 +55,7 @@ export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
           <button
             onClick={handleApprove}
             disabled={approving}
-            className="flex-1 rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition hover:bg-green-600 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-emerald-500 px-4 py-2 font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
           >
             {approving ? "Approving…" : "Approve"}
           </button>

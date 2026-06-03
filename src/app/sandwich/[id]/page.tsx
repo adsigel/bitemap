@@ -148,7 +148,7 @@ export default async function SandwichPage({
         <p className="mb-2 text-stone-500">{sandwich.description}</p>
       )}
       {submitted && !sandwich.approved && (
-        <p className="mb-4 text-center text-sm text-amber-600">
+        <p className="mb-4 text-center text-sm text-orange-600">
           We&apos;ll send you an email once your sandwich is live — usually just a few minutes.
         </p>
       )}

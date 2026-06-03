@@ -10,7 +10,8 @@ export function HomeLink() {
         alt="Bitemap"
         width={120}
         height={32}
-        className="h-8 w-auto dark:invert"
+        className="h-8 dark:invert"
+        style={{ width: "auto" }}
         priority
       />
     </a>

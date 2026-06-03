@@ -117,7 +117,7 @@ export default function UploadPage() {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-stone-300 bg-stone-100 transition hover:border-orange-400 hover:bg-orange-50"
+          className="relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-stone-300 bg-stone-100 transition hover:border-orange-400 hover:bg-orange-100"
           style={{ aspectRatio: "4/3" }}
         >
           {preview ? (

@@ -15,7 +15,7 @@ export default async function SignInPage({
         Save your bite history across devices and track your Commonality Score.
       </p>
       {error === "auth_failed" && (
-        <p className="mb-4 text-sm text-red-500">Sign-in failed. Please try again.</p>
+        <p className="mb-4 text-sm text-red-600">Sign-in failed. Please try again.</p>
       )}
       <SignInForm next={next} />
     </div>

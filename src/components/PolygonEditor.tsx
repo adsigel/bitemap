@@ -157,7 +157,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
               <button
                 onClick={handleClear}
                 disabled={saving}
-                className="text-red-400 transition hover:text-red-600 disabled:opacity-50"
+                className="text-red-600 transition hover:text-red-700 disabled:opacity-50"
               >
                 Clear
               </button>
@@ -198,7 +198,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="font-medium text-green-600 transition hover:text-green-700 disabled:opacity-50"
+                className="font-medium text-emerald-600 transition hover:text-emerald-700 disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
