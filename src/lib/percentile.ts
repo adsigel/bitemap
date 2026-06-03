@@ -27,7 +27,7 @@ export function computePercentile(myPoint: Point, otherBites: Point[]): number {
 
 export function outlierLabel(percentile: number): string {
   if (percentile > 66) return "Such a unique spot for a bite! 🦄";
-  if (percentile > 33) return "A pretty distinctive bite spot 👍";
+  if (percentile > 33) return "You've drawn first bite! 🥪";
   return "That's a popular bite spot 🎯";
 }
 

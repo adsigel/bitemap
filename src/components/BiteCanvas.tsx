@@ -33,6 +33,7 @@ interface Props {
   autoShare?: boolean;
   submitted?: boolean;
   inboundRef?: string | null;
+  existingBite?: { x: number; y: number } | null;
 }
 
 type State =
@@ -43,12 +44,14 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted, inboundRef }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted, inboundRef, existingBite }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
   const nextIdRef = useRef<string | null>(null);
-  const [state, setState] = useState<State>({ phase: "idle" });
+  const [state, setState] = useState<State>(
+    existingBite ? { phase: "already_bitten", point: existingBite } : { phase: "idle" }
+  );
   const [allBites, setAllBites] = useState<Point[]>(initialBites);
   const [navigating, setNavigating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -67,6 +70,15 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
   useEffect(() => {
     if (!userLoaded) return;
+
+    if (existingBite) {
+      // Server already confirmed the bite — skip the DB check, just prefetch next
+      pickNextSandwichId(sandwichId, supabase, userId).then((id) => {
+        nextIdRef.current = id;
+      });
+      return;
+    }
+
     const sessionId = getOrCreateSessionId();
     const query = userId
       ? supabase.from("bites").select("x, y").eq("sandwich_id", sandwichId).eq("user_id", userId).maybeSingle()
@@ -80,7 +92,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         });
       }
     });
-  }, [sandwichId, userId, userLoaded]);
+  }, [sandwichId, userId, userLoaded, existingBite]);
 
   useEffect(() => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
@@ -167,7 +179,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     if (id) {
       router.push(`/sandwich/${id}`);
     } else {
-      router.push("/");
+      router.push("/all-done");
     }
   }, [sandwichId, supabase, router, userId]);
 
@@ -417,9 +429,11 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
               </>
             ) : (
               <>
-                <p className="text-lg font-semibold">{outlierLabel(state.percentile)}</p>
+                <p className="text-lg font-semibold">
+                  {state.totalBites === 0 ? "You've drawn first bite!" : outlierLabel(state.percentile)}
+                </p>
                 {state.totalBites === 0 ? (
-                  <p className="mt-1 text-sm text-stone-500">You&apos;ve drawn first bite! 🥪</p>
+                  <p className="mt-1 text-sm text-stone-500">Keep going to leave your bitemark.</p>
                 ) : state.totalBites < 5 ? (
                   <p className="mt-1 text-sm text-stone-500">
                     Biter #{state.totalBites + 1} — the map&apos;s still filling in.
@@ -461,9 +475,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       {state.phase === "already_bitten" && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-4 text-center text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
-            You&apos;ve already bitten this one.
-          </div>
           <button
             onClick={handleShare}
             disabled={isSharing}

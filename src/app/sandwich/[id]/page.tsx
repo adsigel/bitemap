@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { BiteCanvas, type BiterAvatar } from "@/components/BiteCanvas";
@@ -58,31 +59,52 @@ export default async function SandwichPage({
   const supabase = await createClient();
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  const { data: sandwich } = await supabase
-    .from("sandwiches")
-    .select("*")
-    .eq(isUuid ? "id" : "slug", id)
-    .single();
+
+  // Fetch sandwich, user, and cookies in parallel
+  const [{ data: sandwich }, { data: { user } }, cookieStore] = await Promise.all([
+    supabase.from("sandwiches").select("*").eq(isUuid ? "id" : "slug", id).single(),
+    supabase.auth.getUser(),
+    cookies(),
+  ]);
 
   if (!sandwich) notFound();
 
-  const { data: bites } = await supabase
-    .from("bites")
-    .select("x, y")
-    .eq("sandwich_id", sandwich.id);
+  const sessionId = cookieStore.get("bitemap_session_id")?.value;
 
-  let uploaderName: string | null = null;
-  if (sandwich.uploaded_by) {
-    const { data: uploader } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", sandwich.uploaded_by)
-      .single();
-    uploaderName = uploader?.display_name ?? null;
-  }
+  // Build existing-bite query using server-side identity
+  const existingBiteQuery = user
+    ? supabase
+        .from("bites")
+        .select("x, y")
+        .eq("sandwich_id", sandwich.id)
+        .or(
+          sessionId
+            ? `user_id.eq.${user.id},session_id.eq.${sessionId}`
+            : `user_id.eq.${user.id}`
+        )
+        .maybeSingle()
+    : sessionId
+    ? supabase
+        .from("bites")
+        .select("x, y")
+        .eq("sandwich_id", sandwich.id)
+        .eq("session_id", sessionId)
+        .maybeSingle()
+    : null;
 
   const fortyEightHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: recentBites }, { count: recentBiteCount }] = await Promise.all([
+
+  const [
+    { data: bites },
+    uploaderResult,
+    { data: recentBites },
+    { count: recentBiteCount },
+    existingBiteResult,
+  ] = await Promise.all([
+    supabase.from("bites").select("x, y").eq("sandwich_id", sandwich.id),
+    sandwich.uploaded_by
+      ? supabase.from("profiles").select("display_name").eq("id", sandwich.uploaded_by).single()
+      : Promise.resolve({ data: null }),
     supabase
       .from("bites")
       .select("user_id")
@@ -94,7 +116,11 @@ export default async function SandwichPage({
       .select("*", { count: "exact", head: true })
       .eq("sandwich_id", sandwich.id)
       .gt("created_at", fortyEightHoursAgo),
+    existingBiteQuery ?? Promise.resolve({ data: null }),
   ]);
+
+  const uploaderName = uploaderResult?.data?.display_name ?? null;
+  const existingBite = existingBiteResult?.data as { x: number; y: number } | null ?? null;
   const isHot = (recentBiteCount ?? 0) >= 10;
 
   const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
@@ -139,6 +165,7 @@ export default async function SandwichPage({
         autoShare={share === "1"}
         submitted={!!submitted}
         inboundRef={ref}
+        existingBite={existingBite}
       />
     </div>
   );
