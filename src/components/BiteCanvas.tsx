@@ -239,7 +239,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     } finally {
       setIsSharing(false);
     }
-  }, [state, imageUrl, allBites, title]);
+  }, [state, imageUrl, allBites, title, userId, slug, sandwichId]);
 
   const autoShareFired = useRef(false);
   useEffect(() => {
