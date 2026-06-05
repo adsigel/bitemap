@@ -110,7 +110,7 @@ export default async function SandwichPage({
       .select("user_id")
       .eq("sandwich_id", sandwich.id)
       .order("created_at", { ascending: false })
-      .limit(3),
+      .limit(10),
     supabase
       .from("bites")
       .select("*", { count: "exact", head: true })
@@ -133,10 +133,16 @@ export default async function SandwichPage({
     biterProfiles?.forEach(p => profileMap.set(p.id, p));
   }
 
-  const biters: BiterAvatar[] = (recentBites ?? []).map(b => ({
-    avatarUrl: b.user_id ? (profileMap.get(b.user_id)?.avatar_url ?? null) : null,
-    initial: b.user_id ? (profileMap.get(b.user_id)?.display_name?.[0]?.toUpperCase() ?? null) : null,
-  }));
+  const biters: BiterAvatar[] = (recentBites ?? [])
+    .map(b => ({
+      avatarUrl: b.user_id ? (profileMap.get(b.user_id)?.avatar_url ?? null) : null,
+      initial: b.user_id ? (profileMap.get(b.user_id)?.display_name?.[0]?.toUpperCase() ?? null) : null,
+    }))
+    .sort((a, b) => {
+      const rank = (x: BiterAvatar) => (x.avatarUrl ? 0 : x.initial ? 1 : 2);
+      return rank(a) - rank(b);
+    })
+    .slice(0, 3);
 
   return (
     <div className="mx-auto max-w-2xl">
