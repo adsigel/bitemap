@@ -130,7 +130,12 @@ export async function saveSandwich(args: {
     }
   }
 
-  const isSandwich = await checkIsSandwich(args.imageUrl);
+  let isSandwich = true;
+  try {
+    isSandwich = await checkIsSandwich(args.imageUrl);
+  } catch (err) {
+    console.error("Sandwich check failed, proceeding to manual review:", err);
+  }
   if (!isSandwich) {
     if (args.uploadedBy) await sendRejectionEmail(supabase, args.uploadedBy, args.title, "not_a_sandwich");
     return { error: "not_a_sandwich", id: null, slug: null };
