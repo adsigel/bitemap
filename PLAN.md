@@ -88,14 +88,42 @@ Coordinates are stored as percentages (0–1) so they're display-size-agnostic.
 
 ## Bitemark Score
 
-1. Compute centroid of all bites for a sandwich
-2. Calculate each bite's Euclidean distance from the centroid
-3. Count how many other biters are *more central* than the user (closer to centroid)
-4. Bitemark = `moreCentralCount / totalBiters * 100` — higher means more unique
+The percentile score compares the user's local bite density to all other biters (implemented in `src/lib/percentile.ts`). Higher = more unique. Still used for share image captions and profile averages.
 
-Labels: `> 66` → "Such a unique spot for a bite! 🦄" / `> 33` → "A pretty distinctive bite spot 👍" / else → "That's a popular bite spot 🎯"
+## Tribe / Cluster Copy
 
-Shown on sandwich detail after biting, and averaged across all bites on the profile page.
+After a bite is submitted, `src/lib/cluster.ts` runs DBSCAN on all bites (including the user's) to group them into spatial clusters and assign the user to one.
+
+**DBSCAN parameters:**
+- `EPSILON` — **adaptive**: `max(0.05, 0.8 / sqrt(n))`. Shrinks as bite count grows so dense sandwiches don't collapse into one giant cluster. At n=100 → 0.08; n=200 → 0.057; n=400+ → 0.05.
+- `MIN_PTS = 3` — minimum neighbours to be a core point
+- `MIN_BITES = 15` — below this threshold, falls back to percentile-based copy
+
+**Spatial descriptors** — cluster centroids are first remapped to sandwich-relative coordinates (5th/95th percentile bounding box of all bites) before labelling. This means "left side" reflects position on the sandwich, not the image frame — important when the sandwich doesn't fill the image. Thresholds on remapped coords: `< 0.35` = left/top, `> 0.65` = right/bottom, else center/middle.
+
+| centroid position | label |
+|---|---|
+| center + middle | "the middle" |
+| center + top/bottom | "the top" / "the bottom" |
+| left/right + middle | "the left side" / "the right side" |
+| left/right + top/bottom | "the top-left corner" / etc. |
+
+**Heading vs body copy**: the heading always reflects where the **user bit** (remapped to sandwich-relative coords), not the cluster centroid. This avoids mislabeling border-point biters who land at the edge of a cluster whose center is elsewhere. Body copy uses cluster centroids to describe other groups for context.
+
+**Copy variants:**
+- User in biggest cluster → "Left-side biter / You're with the biggest camp — about 48%…"
+- User in minority cluster → "Top-right biter / About 18% came here. The biggest group (55%) went for the left side."
+- User is noise → "Off the beaten path / No major group formed here. Most biters (60%) clustered around the middle."
+- Fewer than 15 bites or no clusters → falls back to percentile copy
+
+### Future: Editorial cluster names
+
+For sandwiches that cross a maturity threshold (e.g. 50+ bites) with ≥2 clusters, hand-craft cluster names in the admin UI instead of auto-generating them from centroids.
+
+Implementation when ready:
+1. Add `cluster_labels jsonb` column to `sandwiches` (e.g. `{"0": "the heel", "1": "the soft middle"}`)
+2. Pass optional labels map into `getClusterCopy`; if a label exists for the user's cluster index, use it instead of `spatialDescriptor`
+3. Admin UI: show cluster map + text inputs for each cluster after a sandwich matures
 
 ---
 

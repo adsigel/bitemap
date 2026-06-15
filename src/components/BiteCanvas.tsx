@@ -12,7 +12,7 @@ import type { Point } from "@/lib/types";
 import { drawHeatmap } from "@/lib/draw-heatmap";
 import { pointInPolygon } from "@/lib/geometry";
 import { computePercentile, outlierLabel } from "@/lib/percentile";
-import { generateShareImage } from "@/lib/share-image";
+import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId } from "@/lib/pick-next-sandwich";
 
 export interface BiterAvatar {
@@ -40,7 +40,7 @@ type State =
   | { phase: "idle" }
   | { phase: "placed"; point: Point }
   | { phase: "submitting"; point: Point }
-  | { phase: "done"; point: Point; percentile: number; totalBites: number }
+  | { phase: "done"; point: Point; percentile: number; totalBites: number; cluster: ClusterCopy | null }
   | { phase: "already_bitten"; point: Point };
 
 
@@ -164,8 +164,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
     const percentile = computePercentile(point, allBites);
     const updatedBites = [...allBites, point];
+    const cluster = getClusterCopy(point, updatedBites, title);
     setAllBites(updatedBites);
-    setState({ phase: "done", point, percentile, totalBites: allBites.length });
+    setState({ phase: "done", point, percentile, totalBites: allBites.length, cluster });
     track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, ...(inboundRef ? { referred_by: inboundRef } : {}) });
   }, [state, allBites, sandwichId, supabase, userId]);
 
@@ -194,59 +195,32 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
     setIsSharing(true);
     try {
-      let percentile: number | null = null;
-      if (state.phase === "done") {
-        percentile = state.percentile;
-      } else if (state.phase === "already_bitten") {
-        // Exclude the user's own bite from the comparison pool
-        let excluded = false;
-        const otherBites = allBites.filter(b => {
-          if (!excluded && b.x === state.point.x && b.y === state.point.y) {
-            excluded = true;
-            return false;
-          }
-          return true;
-        });
-        if (otherBites.length > 0) percentile = computePercentile(state.point, otherBites);
-      }
-      const n = allBites.length;
+      const cluster =
+        state.phase === "done"
+          ? state.cluster
+          : getClusterCopy(state.point, allBites, title);
+
       const refToken = userId ? await getOrCreateReferralToken(userId).catch(() => null) : null;
       const sandwichUrl = `https://bitemap.food/sandwich/${slug ?? sandwichId}${refToken ? `?ref=${refToken}` : ""}`;
-      let caption: string;
-      if (percentile === null || n < 15) {
-        caption = `Brand new sandwich on Bitemap — be one of the first to call where you'd bite this ${title}: ${sandwichUrl}`;
-      } else if (percentile >= 80) {
-        caption = `Apparently I bite sandwiches weird. Where would you bite this ${title}? ${sandwichUrl}`;
-      } else if (percentile <= 30) {
-        caption = `Turns out I bite a ${title} exactly like everyone else. Comforting, honestly. ${sandwichUrl}`;
-      } else {
-        caption = `A little off the beaten path on this ${title}. Where would you bite? ${sandwichUrl}`;
-      }
 
-      const [blob] = await Promise.all([
-        generateShareImage(imageUrl, allBites, state.point, title, percentile),
-        navigator.clipboard.writeText(caption).catch(() => {}),
-      ]);
-      const file = new File([blob], "my-bite.jpg", { type: "image/jpeg" });
+      const shareBlurb = cluster
+        ? cluster.shareText
+        : `Where would you bite this ${title}?`;
+      const text = `${shareBlurb}\n\n${sandwichUrl}`;
 
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: caption });
+      if (navigator.share) {
+        await navigator.share({ text });
         track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", ...(userId ? { user_id: userId } : {}) });
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "my-bite.jpg";
-        a.click();
-        URL.revokeObjectURL(url);
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "download", ...(userId ? { user_id: userId } : {}) });
+        await navigator.clipboard.writeText(text).catch(() => {});
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "clipboard", ...(userId ? { user_id: userId } : {}) });
       }
     } catch {
-      // User cancelled share or export failed — no-op
+      // User cancelled share — no-op
     } finally {
       setIsSharing(false);
     }
-  }, [state, imageUrl, allBites, title, userId, slug, sandwichId]);
+  }, [state, allBites, title, userId, slug, sandwichId]);
 
   const autoShareFired = useRef(false);
   useEffect(() => {
@@ -442,7 +416,11 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             ) : (
               <>
                 <p className="text-lg font-semibold">
-                  {state.totalBites === 0 ? "You've drawn first bite!" : outlierLabel(state.percentile)}
+                  {state.totalBites === 0
+                    ? "You've drawn first bite!"
+                    : state.cluster
+                    ? state.cluster.heading
+                    : outlierLabel(state.percentile)}
                 </p>
                 {state.totalBites === 0 ? (
                   <p className="mt-1 text-sm text-stone-500">Keep going to leave your bitemark.</p>
@@ -450,6 +428,8 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                   <p className="mt-1 text-sm text-stone-500">
                     Biter #{state.totalBites + 1} — the map&apos;s still filling in.
                   </p>
+                ) : state.cluster ? (
+                  <p className="mt-1 text-sm text-stone-500">{state.cluster.body}</p>
                 ) : (
                   <p className="mt-1 text-sm text-stone-500">
                     Your bite was more central than{" "}
