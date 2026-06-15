@@ -184,7 +184,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
   }, [sandwichId, supabase, router, userId]);
 
   const handleSkip = useCallback(async () => {
-    track("Sandwich Skipped", { sandwich_id: sandwichId });
+    await track("Sandwich Skipped", { sandwich_id: sandwichId });
     setNavigating(true);
     const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
     if (id) {

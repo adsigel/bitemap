@@ -74,7 +74,7 @@ export default function UploadPage() {
       return;
     }
 
-    track("Sandwich Uploaded", { title, sandwich_id: id, ...(currentUserId ? { user_id: currentUserId } : {}) });
+    await track("Sandwich Uploaded", { title, sandwich_id: id, ...(currentUserId ? { user_id: currentUserId } : {}) });
     if (currentUserId) {
       router.push(`/sandwich/${slug ?? id}?submitted=1`);
     } else {
