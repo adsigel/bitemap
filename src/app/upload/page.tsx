@@ -135,6 +135,13 @@ export default function UploadPage() {
       return;
     }
 
+    if (saveError === "not_a_sandwich") {
+      await track("Sandwich Uploaded", { ...baseProps, status: "rejected", failure_reason: "not_a_sandwich" });
+      setStatus("That doesn't look like a sandwich to us. Got a different photo?");
+      setSubmitting(false);
+      return;
+    }
+
     if (saveError || !id) {
       setStatus(`Error: ${saveError}`);
       setSubmitting(false);

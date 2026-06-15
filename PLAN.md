@@ -19,6 +19,7 @@ Users tap on sandwich photos to indicate where they'd take the next bite. Bite c
 | Bite UI | HTML Canvas (Canvas 2D) | Tap-to-place interaction + heatmap overlay |
 | Email | Resend | Transactional notifications (domain: bitemap.food) |
 | Analytics | Amplitude | Browser SDK (client) + HTTP API (server) |
+| Image moderation | Claude Haiku 4.5 (Anthropic) | Synchronous sandwich check on upload; ~$0.001–0.002/image |
 | Hosting | Vercel | |
 
 ---
@@ -32,6 +33,7 @@ Users tap on sandwich photos to indicate where they'd take the next bite. Bite c
 | title | text | e.g. "Italian Sub" |
 | description | text | optional |
 | image_url | text | Supabase Storage public URL |
+| image_hash | text | SHA-256 of cropped JPEG; partial unique index prevents re-upload of identical images |
 | uploaded_by | uuid | FK → auth.users; null = admin seed |
 | approved | bool | false = pending review |
 | created_at | timestamptz | |
@@ -76,6 +78,9 @@ Coordinates are stored as percentages (0–1) so they're display-size-agnostic.
 - [X] Sandwich moderation queue — approve, reject, rename
 - [X] Upload attribution — submitted sandwiches linked to uploader profile
 - [X] Share image — generates a JPEG with heatmap overlay + watermark for sharing
+- [X] Upload crop step — pan/zoom crop before submitting
+- [X] Duplicate detection — SHA-256 hash of cropped JPEG, partial unique index in Postgres
+- [X] Image moderation — Claude Haiku vision check rejects non-sandwich photos on upload
 - [ ] Bite breakdown by region (crust vs. middle, left vs. right)
 - [ ] Leaderboard / most-bitten sandwiches
 
@@ -126,11 +131,13 @@ Milestone emails only fire for logged-in users (anonymous users have no email). 
 
 ## Amplitude Tracking
 
-| Event | Where | Notes |
+| Event | Where | Properties |
 |---|---|---|
 | Bite Taken | BiteCanvas (client) | sandwich_id, x, y, percentile, total_bites |
 | Bite Moved | BiteCanvas (client) | sandwich_id |
+| Sandwich Skipped | BiteCanvas (client) | sandwich_id |
 | Sandwich Shared | BiteCanvas (client) | sandwich_id, method (native_share / download) |
+| Sandwich Uploaded | upload/page (client) | title, status (success / rejected), failure_reason (duplicate / not_a_sandwich), sandwich_id (on success) |
 | Account Created | Auth callback → client | fires once on first login |
 | Profile Viewed | Profile page (client) | fires on mount |
 | Username Edited | DisplayNameEditor (client) | fires after successful save |
@@ -150,6 +157,21 @@ Server-side events use the Amplitude HTTP API directly (no Node SDK) via `src/li
 ---
 
 ## Known Issues / Future Work
+
+### Image moderation scaling
+
+Current approach: synchronous Claude Haiku 4.5 vision check in `saveSandwich` before insert. ~$0.001–0.002/image. The check runs on the already-uploaded Supabase Storage URL and blocks the submission if it fails.
+
+As volume grows, options in rough order of effort:
+
+| Option | When to consider | Trade-offs |
+|---|---|---|
+| Keep Haiku synchronous | Up to ~50k uploads/month (~$50–100/mo) | Simple, zero infrastructure |
+| Switch to async (background job) | When check latency becomes noticeable (~1–2s) | Faster UX; requires a queue/webhook + cleanup of rejected images |
+| Google Vision / AWS Rekognition label detection | Cost-sensitive at high volume ($1–1.50/1k) | Cheaper per-image but less nuanced; may need label thresholding |
+| Fine-tuned classifier | Very high volume + specific taxonomy needs | Best cost/accuracy but requires training data and infra |
+
+The `failure_reason: "not_a_sandwich"` property on `Sandwich Uploaded` events is the signal to watch — if rejection rate climbs, it's worth auditing whether the prompt is too strict.
 
 ### Out-of-bounds bite detection
 Users occasionally place bites outside the sandwich itself — on hands, plates, backgrounds, etc. Ideas for addressing this:

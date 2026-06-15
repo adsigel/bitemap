@@ -1,11 +1,97 @@
 "use server";
 
+import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trackServer } from "@/lib/track-server";
 import { generateSlug } from "@/lib/slug";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+async function checkIsSandwich(imageUrl: string): Promise<boolean> {
+  const msg = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 10,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "url", url: imageUrl } },
+          {
+            type: "text",
+            text: 'Does this image primarily show a sandwich, burger, sub, wrap, or similar handheld food item? Reply with only "yes" or "no".',
+          },
+        ],
+      },
+    ],
+  });
+  const text = (msg.content[0] as { type: "text"; text: string }).text.trim().toLowerCase();
+  return text.startsWith("yes");
+}
+
+type SupabaseAdminClient = ReturnType<typeof createAdminClient>;
+
+async function sendRejectionEmail(
+  supabase: SupabaseAdminClient,
+  userId: string,
+  title: string,
+  reason: "duplicate" | "not_a_sandwich"
+) {
+  const { data: authData } = await supabase.auth.admin.getUserById(userId);
+  const email = authData?.user?.email;
+  if (!email) return;
+
+  const uploadUrl = "https://bitemap.food/upload";
+
+  const subjects: Record<typeof reason, string> = {
+    duplicate: `Sandwich rejected: We already have that one`,
+    not_a_sandwich: `Sandwich rejected: That one didn't make the cut`,
+  };
+
+  const bodies: Record<typeof reason, { html: string; text: string }> = {
+    duplicate: {
+      html: `<p style="font-size:16px;line-height:1.65;margin:0 0 20px 0;">
+        Thanks for submitting <strong>${title}</strong>! We already have that exact picture in our library, so we didn't add it again.
+      </p>
+      <p style="font-size:16px;line-height:1.65;margin:0 0 32px 0;">
+        Got a different photo of this sandwich, or another sandwich you love? We'd love to see it.
+      </p>`,
+      text: `Thanks for submitting ${title}! We already have that exact picture in our library, so we didn't add it again.\n\nGot a different photo of this sandwich, or another sandwich you love? We'd love to see it.\n\n`,
+    },
+    not_a_sandwich: {
+      html: `<p style="font-size:16px;line-height:1.65;margin:0 0 20px 0;">
+        Thanks for submitting <strong>${title}</strong>! Our sandwich bouncer suspected a fake, so we held it back.
+      </p>
+      <p style="font-size:16px;line-height:1.65;margin:0 0 32px 0;">
+        If you think we got it wrong, try uploading again with a clearer photo of the sandwich. We want every bite to count.
+      </p>`,
+      text: `Thanks for submitting ${title}! Our sandwich bouncer suspected a fake, so we held it back.\n\nIf you think we got it wrong, try uploading again with a clearer photo of the sandwich. We want every bite to count.\n\n`,
+    },
+  };
+
+  const { html, text } = bodies[reason];
+  const { error } = await resend.emails.send({
+    from: "Adam @ Bitemap <hello@bitemap.food>",
+    to: email,
+    subject: subjects[reason],
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#fff;font-family:sans-serif;color:#1c1917;">
+  <div style="max-width:480px;margin:0 auto;padding:48px 28px;">
+    ${html}
+    <a href="${uploadUrl}" style="display:inline-block;background:#f97316;color:#fff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;margin-bottom:20px;">Submit another sando</a>
+    <p style="margin:48px 0 0 0;font-size:14px;color:#57534e;line-height:1.6;">
+      Thanks for your support,<br>Adam @ Bitemap
+    </p>
+  </div>
+</body>
+</html>`,
+    text: `${text}Submit another sando: ${uploadUrl}\n\nThanks for your support,\nAdam @ Bitemap`,
+  });
+  if (error) console.error("Resend error:", error);
+}
 
 export async function getSignedUploadUrl(filename: string, contentType: string) {
   const supabase = createAdminClient();
@@ -38,7 +124,16 @@ export async function saveSandwich(args: {
       .select("id")
       .eq("image_hash", args.imageHash)
       .maybeSingle();
-    if (existing) return { error: "duplicate", id: null, slug: null };
+    if (existing) {
+      if (args.uploadedBy) await sendRejectionEmail(supabase, args.uploadedBy, args.title, "duplicate");
+      return { error: "duplicate", id: null, slug: null };
+    }
+  }
+
+  const isSandwich = await checkIsSandwich(args.imageUrl);
+  if (!isSandwich) {
+    if (args.uploadedBy) await sendRejectionEmail(supabase, args.uploadedBy, args.title, "not_a_sandwich");
+    return { error: "not_a_sandwich", id: null, slug: null };
   }
 
   const id = crypto.randomUUID();
