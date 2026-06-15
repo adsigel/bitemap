@@ -78,6 +78,12 @@ export async function approveWithBounds(id: string, bounds: { x: number; y: numb
   await approveSandwich(id);
 }
 
+export async function toggleFeatured(id: string, featured: boolean) {
+  const supabase = createAdminClient();
+  await supabase.from("sandwiches").update({ featured }).eq("id", id);
+  revalidatePath("/admin/review");
+}
+
 export async function unpublishSandwich(id: string) {
   const supabase = createAdminClient();
   await supabase.from("sandwiches").update({ approved: false }).eq("id", id);

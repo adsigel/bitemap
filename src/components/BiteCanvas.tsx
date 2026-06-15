@@ -30,6 +30,7 @@ interface Props {
   uploaderName?: string | null;
   biters?: BiterAvatar[];
   isHot?: boolean;
+  featured?: boolean;
   autoShare?: boolean;
   submitted?: boolean;
   inboundRef?: string | null;
@@ -44,7 +45,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, autoShare, submitted, inboundRef, existingBite }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -316,11 +317,16 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           </div>
         )}
 
-        {(isHot || allBites.length < 5) && (
+        {(isHot || featured || allBites.length < 5) && (
           <div
             className="pointer-events-none absolute z-10"
             style={{ top: '0.75rem', right: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}
           >
+            {featured && (
+              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
+                🏆 featured
+              </span>
+            )}
             {isHot && (
               <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
                 hot 🔥

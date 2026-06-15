@@ -92,8 +92,6 @@ export default async function SandwichPage({
         .maybeSingle()
     : null;
 
-  const fortyEightHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
   // Supabase PostgREST caps responses at 1000 rows by default; paginate to get all bites.
   const fetchAllBites = async () => {
     const PAGE = 1000;
@@ -115,7 +113,7 @@ export default async function SandwichPage({
     bites,
     uploaderResult,
     { data: recentBites },
-    { count: recentBiteCount },
+    { data: hotData },
     existingBiteResult,
   ] = await Promise.all([
     fetchAllBites(),
@@ -129,16 +127,16 @@ export default async function SandwichPage({
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
-      .from("bites")
-      .select("*", { count: "exact", head: true })
+      .from("hot_sandwiches")
+      .select("sandwich_id")
       .eq("sandwich_id", sandwich.id)
-      .gt("created_at", fortyEightHoursAgo),
+      .maybeSingle(),
     existingBiteQuery ?? Promise.resolve({ data: null }),
   ]);
 
   const uploaderName = uploaderResult?.data?.display_name ?? null;
   const existingBite = existingBiteResult?.data as { x: number; y: number } | null ?? null;
-  const isHot = (recentBiteCount ?? 0) >= 10;
+  const isHot = !!hotData;
 
   const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
   const profileMap = new Map<string, { avatar_url: string | null; display_name: string }>();
@@ -185,6 +183,7 @@ export default async function SandwichPage({
         uploaderName={uploaderName}
         biters={biters}
         isHot={isHot}
+        featured={!!sandwich.featured}
         autoShare={share === "1"}
         submitted={!!submitted}
         inboundRef={ref}

@@ -13,6 +13,22 @@ function computePercentile(my: { x: number; y: number }, others: { x: number; y:
   return Math.round((moreCentral / others.length) * 100);
 }
 
+function Sparkline({ data }: { data: number[] }) {
+  const max = Math.max(...data);
+  if (max === 0) return null;
+  const W = 56, H = 20;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = H - (v / max) * (H - 2) - 1;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
+      <polyline points={pts} fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default async function ProfilePage({
   searchParams,
 }: {
@@ -35,11 +51,38 @@ export default async function ProfilePage({
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase
       .from("sandwiches_with_count")
-      .select("id, slug, title, approved, created_at, image_url, bite_count")
+      .select("id, slug, title, approved, featured, created_at, image_url, bite_count")
       .eq("uploaded_by", user.id)
       .order(sort === "bites" ? "bite_count" : "created_at", { ascending: false }),
     supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
   ]);
+
+  const approvedSandwiches = (userSandwiches ?? []).filter(s => s.approved);
+  const pendingSandwiches = (userSandwiches ?? []).filter(s => !s.approved);
+  const approvedIds = approvedSandwiches.map(s => s.id);
+
+  const hotSet = new Set<string>();
+  const sparklineMap = new Map<string, number[]>();
+
+  if (approvedIds.length > 0) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [{ data: hotData }, { data: recentBites }] = await Promise.all([
+      supabase.from("hot_sandwiches").select("sandwich_id").in("sandwich_id", approvedIds),
+      supabase.from("bites").select("sandwich_id, created_at").in("sandwich_id", approvedIds).gte("created_at", sevenDaysAgo),
+    ]);
+
+    (hotData ?? []).forEach(h => hotSet.add(h.sandwich_id));
+
+    const now = Date.now();
+    for (const sid of approvedIds) {
+      const days = Array(7).fill(0);
+      for (const b of (recentBites ?? []).filter(b => b.sandwich_id === sid)) {
+        const dayIndex = Math.floor((now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24));
+        if (dayIndex < 7) days[6 - dayIndex]++;
+      }
+      sparklineMap.set(sid, days);
+    }
+  }
 
   let commonalityScore: number | null = null;
   if (userBites?.length) {
@@ -123,7 +166,34 @@ export default async function ProfilePage({
         </p>
       )}
 
-      {userSandwiches && userSandwiches.length > 0 && (
+      {pendingSandwiches.length > 0 && (
+        <div>
+          <h2 className="mb-3 font-semibold">Pending review</h2>
+          <ul className="space-y-2">
+            {pendingSandwiches.map((s) => (
+              <li key={s.id}>
+                <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-800">
+                  <div
+                    className="relative shrink-0 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-700"
+                    style={{ width: 56, height: 56 }}
+                  >
+                    {s.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.image_url} alt={s.title} className="absolute inset-0 h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-stone-800 dark:text-stone-100">{s.title}</p>
+                    <p className="text-sm text-stone-400 dark:text-stone-500">Pending review</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {approvedSandwiches.length > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Your Sandos</h2>
@@ -143,7 +213,10 @@ export default async function ProfilePage({
             </div>
           </div>
           <ul className="space-y-2">
-            {userSandwiches.map((s) => {
+            {approvedSandwiches.map((s) => {
+              const isHot = hotSet.has(s.id);
+              const isFeatured = !!s.featured;
+              const sparklineData = sparklineMap.get(s.id) ?? Array(7).fill(0);
               const card = (
                 <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-800">
                   <div
@@ -152,11 +225,7 @@ export default async function ProfilePage({
                   >
                     {s.image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={s.image_url}
-                        alt={s.title}
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
+                      <img src={s.image_url} alt={s.title} className="absolute inset-0 h-full w-full object-cover" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -165,24 +234,22 @@ export default async function ProfilePage({
                       {s.bite_count ?? 0} {(s.bite_count ?? 0) === 1 ? "bite" : "bites"}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    s.approved
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400"
-                  }`}>
-                    {s.approved ? "Approved" : "Pending"}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Sparkline data={sparklineData} />
+                    {isFeatured && (
+                      <span className="text-xs font-medium text-amber-500">🏆 featured</span>
+                    )}
+                    {isHot && (
+                      <span className="text-xs font-medium text-orange-500">hot 🔥</span>
+                    )}
+                  </div>
                 </div>
               );
               return (
                 <li key={s.id}>
-                  {s.approved ? (
-                    <a href={`/sandwich/${s.slug ?? s.id}`} className="block transition hover:opacity-80">
-                      {card}
-                    </a>
-                  ) : (
-                    card
-                  )}
+                  <a href={`/sandwich/${s.slug ?? s.id}`} className="block transition hover:opacity-80">
+                    {card}
+                  </a>
                 </li>
               );
             })}

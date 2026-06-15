@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { renameSandwich, unpublishSandwich } from "./actions";
+import { renameSandwich, unpublishSandwich, toggleFeatured } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
 import { PolygonEditor } from "@/components/PolygonEditor";
 import { PendingCard } from "@/components/PendingCard";
@@ -76,20 +76,38 @@ export default async function AdminReviewPage() {
               <p className="text-xs text-stone-400">
                 {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
               </p>
-              <form
-                action={async () => {
-                  "use server";
-                  await unpublishSandwich(sandwich.id);
-                }}
-                className="mt-3"
-              >
-                <button
-                  type="submit"
-                  className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 transition hover:bg-stone-50"
+              <div className="mt-3 flex gap-2">
+                <form
+                  action={async () => {
+                    "use server";
+                    await toggleFeatured(sandwich.id, !sandwich.featured);
+                  }}
                 >
-                  Unpublish
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    className={`rounded-lg border px-3 py-1.5 text-xs transition hover:bg-stone-50 ${
+                      sandwich.featured
+                        ? "border-amber-300 text-amber-600"
+                        : "border-stone-200 text-stone-500"
+                    }`}
+                  >
+                    {sandwich.featured ? "🏆 Unfeature" : "Feature"}
+                  </button>
+                </form>
+                <form
+                  action={async () => {
+                    "use server";
+                    await unpublishSandwich(sandwich.id);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 transition hover:bg-stone-50"
+                  >
+                    Unpublish
+                  </button>
+                </form>
+              </div>
               <TimelapseExporter
                 sandwichId={sandwich.id}
                 title={sandwich.title}

@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 const NEW_USER_THRESHOLD = 2;
+const FEATURED_BOOST_THRESHOLD = 5;
 const POOL_SIZE = 5;
+const FEATURED_SLOTS = 2;
 const BOT_UA = /facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|WhatsApp|TelegramBot|Applebot|Discordbot|bot|crawl|spider/i;
 
 export default async function HomePage() {
@@ -17,7 +19,7 @@ export default async function HomePage() {
   const sessionId = cookieStore.get("bitemap_session_id")?.value;
 
   const [{ data: all }, { data: { user } }] = await Promise.all([
-    supabase.from("sandwiches_with_count").select("id, uploaded_by, bite_count").eq("approved", true),
+    supabase.from("sandwiches_with_count").select("id, uploaded_by, bite_count, featured").eq("approved", true),
     supabase.auth.getUser(),
   ]);
 
@@ -66,14 +68,28 @@ export default async function HomePage() {
     }
   }
 
-  // Priority 2: new users see popular maps; experienced users fill in sparse ones
   const isNewUser = bittenIds.size < NEW_USER_THRESHOLD;
-  const sorted = [...unbitten].sort((a, b) =>
+  const isBoostedUser = bittenIds.size < FEATURED_BOOST_THRESHOLD;
+
+  // Priority 2: for users in their first FEATURED_BOOST_THRESHOLD bites, reserve
+  // up to FEATURED_SLOTS pool spots for featured sandwiches they haven't seen yet.
+  const featuredUnbitten = isBoostedUser ? unbitten.filter((s) => s.featured) : [];
+  const featuredPool = featuredUnbitten
+    .sort((a, b) => (b.bite_count ?? 0) - (a.bite_count ?? 0))
+    .slice(0, FEATURED_SLOTS);
+
+  const nonFeaturedUnbitten = isBoostedUser
+    ? unbitten.filter((s) => !s.featured)
+    : unbitten;
+
+  // Priority 3: new users see popular maps; experienced users fill in sparse ones
+  const sorted = [...nonFeaturedUnbitten].sort((a, b) =>
     isNewUser
       ? (b.bite_count ?? 0) - (a.bite_count ?? 0)
       : (a.bite_count ?? 0) - (b.bite_count ?? 0)
   );
-  const pool = sorted.slice(0, Math.min(POOL_SIZE, sorted.length));
+  const fillSlots = Math.max(0, POOL_SIZE - featuredPool.length);
+  const pool = [...featuredPool, ...sorted.slice(0, fillSlots)];
   const pick = pool[Math.floor(Math.random() * pool.length)];
   redirect(`/sandwich/${pick.id}`);
 }
