@@ -146,7 +146,7 @@ export function getClusterCopy(userPoint: Point, allBites: Point[], title: strin
     return {
       heading,
       body: `You went your own way — ${fmtPct(largest.length, total)} of biters clustered around ${clusterDesc(largest)}.`,
-      shareText: `I went my own way on this ${title} — ${fmtGroup(largest.length, total)} clustered around ${clusterDesc(largest)}.`,
+      shareText: `I went my own way on this ${title}. ${capitalize(fmtGroup(largest.length, total))} clustered around ${clusterDesc(largest)}.`,
     };
   }
 
@@ -156,7 +156,7 @@ export function getClusterCopy(userPoint: Point, allBites: Point[], title: strin
     return {
       heading,
       body: `${capitalize(fmtPct(userCluster.length, total))} went here — this sandwich has a clear favorite spot.`,
-      shareText: `I'm a ${noun} on this ${title} — ${fmtGroup(userCluster.length, total)} went here.`,
+      shareText: `I'm a ${noun} on this ${title}. ${capitalize(fmtGroup(userCluster.length, total))} went here.`,
     };
   }
 
@@ -165,13 +165,13 @@ export function getClusterCopy(userPoint: Point, allBites: Point[], title: strin
     return {
       heading,
       body: `You're with the biggest camp — ${fmtPct(userCluster.length, total)} of biters. The next group (${fmtPct(second.length, total)}) went for ${clusterDesc(second)}.`,
-      shareText: `I'm a ${noun} on this ${title} — ${fmtGroup(userCluster.length, total)} went here.`,
+      shareText: `I'm a ${noun} on this ${title}. ${capitalize(fmtGroup(userCluster.length, total))} went here.`,
     };
   }
 
   return {
     heading,
     body: `${capitalize(fmtPct(userCluster.length, total))} of biters came here. The biggest group (${fmtPct(sorted[0].length, total)}) went for ${clusterDesc(sorted[0])}.`,
-    shareText: `I'm a ${noun} on this ${title} — only ${fmtGroup(userCluster.length, total)} came here.`,
+    shareText: `I'm a ${noun} on this ${title}. Only ${fmtGroup(userCluster.length, total)} came here.`,
   };
 }

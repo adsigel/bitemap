@@ -206,7 +206,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       const shareBlurb = cluster
         ? cluster.shareText
         : `Where would you bite this ${title}?`;
-      const text = `${shareBlurb}\n\n${sandwichUrl}`;
+      const text = `${shareBlurb}\n${sandwichUrl}`;
 
       if (navigator.share) {
         await navigator.share({ text });
