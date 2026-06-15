@@ -183,6 +183,17 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     }
   }, [sandwichId, supabase, router, userId]);
 
+  const handleSkip = useCallback(async () => {
+    track("Sandwich Skipped", { sandwich_id: sandwichId });
+    setNavigating(true);
+    const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
+    if (id) {
+      router.push(`/sandwich/${id}`);
+    } else {
+      router.push("/all-done");
+    }
+  }, [sandwichId, supabase, router, userId]);
+
   const handleShare = useCallback(async () => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
     setIsSharing(true);
@@ -393,6 +404,16 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           </span>
         </div>
       </div>
+
+      {state.phase === "idle" && (
+        <button
+          onClick={handleSkip}
+          disabled={navigating}
+          className="block w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+        >
+          {navigating ? "Loading…" : "I wouldn't bite"}
+        </button>
+      )}
 
       {state.phase === "placed" && (
         <div className="flex gap-3">

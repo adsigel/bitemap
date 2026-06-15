@@ -94,14 +94,31 @@ export default async function SandwichPage({
 
   const fortyEightHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // Supabase PostgREST caps responses at 1000 rows by default; paginate to get all bites.
+  const fetchAllBites = async () => {
+    const PAGE = 1000;
+    const all: { x: number; y: number }[] = [];
+    for (let page = 0; ; page++) {
+      const { data } = await supabase
+        .from("bites")
+        .select("x, y")
+        .eq("sandwich_id", sandwich.id)
+        .range(page * PAGE, (page + 1) * PAGE - 1);
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < PAGE) break;
+    }
+    return all;
+  };
+
   const [
-    { data: bites },
+    bites,
     uploaderResult,
     { data: recentBites },
     { count: recentBiteCount },
     existingBiteResult,
   ] = await Promise.all([
-    supabase.from("bites").select("x, y").eq("sandwich_id", sandwich.id),
+    fetchAllBites(),
     sandwich.uploaded_by
       ? supabase.from("profiles").select("display_name").eq("id", sandwich.uploaded_by).single()
       : Promise.resolve({ data: null }),
@@ -163,7 +180,7 @@ export default async function SandwichPage({
         slug={sandwich.slug}
         title={sandwich.title}
         imageUrl={sandwich.image_url}
-        initialBites={bites ?? []}
+        initialBites={bites}
         biteBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
         uploaderName={uploaderName}
         biters={biters}
