@@ -177,9 +177,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     setNavigating(true);
     const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
     if (id) {
-      router.push(`/sandwich/${id}`);
+      router.replace(`/sandwich/${id}`);
     } else {
-      router.push("/all-done");
+      router.replace("/all-done");
     }
   }, [sandwichId, supabase, router, userId]);
 
