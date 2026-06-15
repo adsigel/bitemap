@@ -54,6 +54,7 @@ export default function UploadPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [uploadedSlug, setUploadedSlug] = useState<string | null>(null);
+  const [rejectedReason, setRejectedReason] = useState<"duplicate" | "not_a_sandwich" | null>(null);
 
   const supabase = createClient();
 
@@ -128,16 +129,9 @@ export default function UploadPage() {
 
     const baseProps = { title, ...(currentUserId ? { user_id: currentUserId } : {}) };
 
-    if (saveError === "duplicate") {
-      await track("Sandwich Uploaded", { ...baseProps, status: "rejected", failure_reason: "duplicate" });
-      setStatus("This sandwich has already been submitted!");
-      setSubmitting(false);
-      return;
-    }
-
-    if (saveError === "not_a_sandwich") {
-      await track("Sandwich Uploaded", { ...baseProps, status: "rejected", failure_reason: "not_a_sandwich" });
-      setStatus("That doesn't look like a sandwich to us. Got a different photo?");
+    if (saveError === "duplicate" || saveError === "not_a_sandwich") {
+      await track("Sandwich Uploaded", { ...baseProps, status: "rejected", failure_reason: saveError });
+      setRejectedReason(saveError);
       setSubmitting(false);
       return;
     }
@@ -158,6 +152,15 @@ export default function UploadPage() {
     }
   }
 
+  function handleRetry() {
+    setRejectedReason(null);
+    setPreview(null);
+    setCroppedBlob(null);
+    setSrcUrl(null);
+    setStatus(null);
+    fileRef.current?.click();
+  }
+
   // Always-present hidden file input so fileRef works from any UI state
   const fileInput = (
     <input
@@ -168,6 +171,41 @@ export default function UploadPage() {
       onChange={handleFileChange}
     />
   );
+
+  if (rejectedReason) {
+    const copy = {
+      duplicate: {
+        emoji: "🔁",
+        heading: "We already have that one",
+        body: "That exact photo is already in our library. Got a different shot of this sandwich, or another sandwich entirely?",
+        cta: "Try a different photo",
+      },
+      not_a_sandwich: {
+        emoji: "🤨",
+        heading: "Our sandwich bouncer raised an eyebrow",
+        body: "We couldn't confirm this was a sandwich. If you think we got it wrong, try again with a clearer photo.",
+        cta: "Try again",
+      },
+    }[rejectedReason];
+
+    return (
+      <div className="mx-auto flex max-w-sm flex-col items-center py-16 text-center">
+        {fileInput}
+        <div className="mb-2 text-4xl">{copy.emoji}</div>
+        <h1 className="mb-2 text-2xl font-bold">{copy.heading}</h1>
+        <p className="mb-8 text-stone-500">{copy.body}</p>
+        <button
+          onClick={handleRetry}
+          className="mb-3 w-full rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600"
+        >
+          {copy.cta}
+        </button>
+        <a href="/" className="text-sm text-stone-400 hover:text-stone-600">
+          Back to sandwiches
+        </a>
+      </div>
+    );
+  }
 
   if (uploadedId) {
     return (
