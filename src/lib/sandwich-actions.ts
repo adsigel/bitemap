@@ -26,10 +26,21 @@ export async function saveSandwich(args: {
   title: string;
   description: string;
   imageUrl: string;
+  imageHash?: string | null;
   approved?: boolean;
   uploadedBy?: string | null;
 }) {
   const supabase = createAdminClient();
+
+  if (args.imageHash) {
+    const { data: existing } = await supabase
+      .from("sandwiches")
+      .select("id")
+      .eq("image_hash", args.imageHash)
+      .maybeSingle();
+    if (existing) return { error: "duplicate", id: null, slug: null };
+  }
+
   const id = crypto.randomUUID();
   const slug = generateSlug(args.title, id);
   const { data, error } = await supabase
@@ -41,6 +52,7 @@ export async function saveSandwich(args: {
       description: args.description.trim() || null,
       image_url: args.imageUrl,
       approved: args.approved ?? false,
+      ...(args.imageHash ? { image_hash: args.imageHash } : {}),
       ...(args.uploadedBy ? { uploaded_by: args.uploadedBy } : {}),
     })
     .select("id, slug")

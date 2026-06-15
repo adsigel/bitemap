@@ -107,7 +107,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (state.phase !== "idle") return;
+      if (state.phase !== "idle" && state.phase !== "placed") return;
       const rect = e.currentTarget.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
@@ -119,6 +119,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         return;
       }
 
+      if (state.phase === "placed") {
+        track("Bite Moved", { sandwich_id: sandwichId });
+      }
       setState({ phase: "placed", point: { x, y } });
     },
     [state.phase, biteBounds, sandwichId]
@@ -165,13 +168,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     setState({ phase: "done", point, percentile, totalBites: allBites.length });
     track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, ...(inboundRef ? { referred_by: inboundRef } : {}) });
   }, [state, allBites, sandwichId, supabase, userId]);
-
-  const handleReset = useCallback(() => {
-    if (state.phase === "placed") {
-      track("Bite Moved", { sandwich_id: sandwichId });
-      setState({ phase: "idle" });
-    }
-  }, [state.phase, sandwichId]);
 
   const handleNext = useCallback(async () => {
     setNavigating(true);
@@ -281,7 +277,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       <div
         ref={containerRef}
         className={`relative w-full overflow-hidden rounded-xl bg-stone-100 select-none ${
-          state.phase === "idle" ? "cursor-crosshair" : "cursor-default"
+          state.phase === "idle" || state.phase === "placed" ? "cursor-crosshair" : "cursor-default"
         }`}
         style={{ aspectRatio: "4/3" }}
         onClick={handleClick}
@@ -416,19 +412,14 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       )}
 
       {state.phase === "placed" && (
-        <div className="flex gap-3">
+        <div className="space-y-2">
           <button
             onClick={handleSubmit}
-            className="flex-1 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 active:scale-95"
+            className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 active:scale-95"
           >
             Confirm bite
           </button>
-          <button
-            onClick={handleReset}
-            className="rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-stone-600 transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
-          >
-            Move it
-          </button>
+          <p className="text-center text-xs text-stone-400">Tap the image to reposition</p>
         </div>
       )}
 
