@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StaticHeatmap } from "@/components/StaticHeatmap";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 
 export const metadata: Metadata = {
   title: "Bitemap — Where would you bite?",
@@ -109,18 +110,7 @@ export default async function WelcomePage() {
       {/* Testimonials */}
       <section className="px-4 py-16">
         <h2 className="mb-10 text-center text-2xl font-bold text-stone-900">What people are saying</h2>
-        <div className="grid gap-6 sm:grid-cols-3">
-          {[
-            { quote: "This is far more entertaining than it should be.", handle: "thatguyinstarbucks" },
-            { quote: "I was going to say this is really stupid.. but then I clicked through 10 sandwiches.", handle: "Extremely_Peaceful" },
-            { quote: "OMG - it made me really hungry!!!!", handle: "SighFor" },
-          ].map(({ quote, handle }) => (
-            <figure key={handle} className="rounded-2xl bg-stone-100 p-8">
-              <blockquote className="mb-6 text-base leading-relaxed text-stone-700">&ldquo;{quote}&rdquo;</blockquote>
-              <figcaption className="text-sm font-medium text-stone-400">— u/{handle}</figcaption>
-            </figure>
-          ))}
-        </div>
+        <TestimonialsCarousel />
       </section>
 
       {/* CTA footer */}
