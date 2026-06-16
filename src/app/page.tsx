@@ -10,9 +10,16 @@ const POOL_SIZE = 5;
 const FEATURED_SLOTS = 2;
 const BOT_UA = /facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|WhatsApp|TelegramBot|Applebot|Discordbot|bot|crawl|spider/i;
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account_created?: string }>;
+}) {
   const ua = (await headers()).get("user-agent") ?? "";
   if (BOT_UA.test(ua)) redirect("/welcome");
+
+  const { account_created } = await searchParams;
+  const accountCreatedSuffix = account_created === "1" ? "?account_created=1" : "";
 
   const supabase = await createClient();
   const cookieStore = await cookies();
@@ -56,7 +63,7 @@ export default async function HomePage() {
   const unbitten = all.filter((s) => !bittenIds.has(s.id));
   if (unbitten.length === 0 && bittenIds.size > 0) redirect("/all-done");
   if (unbitten.length === 0) {
-    redirect(`/sandwich/${all[Math.floor(Math.random() * all.length)].id}`);
+    redirect(`/sandwich/${all[Math.floor(Math.random() * all.length)].id}${accountCreatedSuffix}`);
   }
 
   // Priority 1: user's own uploaded sandwiches they haven't bitten yet
@@ -64,7 +71,7 @@ export default async function HomePage() {
     const ownUnbitten = unbitten.filter((s) => s.uploaded_by === user.id);
     if (ownUnbitten.length > 0) {
       const pick = ownUnbitten[Math.floor(Math.random() * ownUnbitten.length)];
-      redirect(`/sandwich/${pick.id}`);
+      redirect(`/sandwich/${pick.id}${accountCreatedSuffix}`);
     }
   }
 
@@ -91,5 +98,5 @@ export default async function HomePage() {
   const fillSlots = Math.max(0, POOL_SIZE - featuredPool.length);
   const pool = [...featuredPool, ...sorted.slice(0, fillSlots)];
   const pick = pool[Math.floor(Math.random() * pool.length)];
-  redirect(`/sandwich/${pick.id}`);
+  redirect(`/sandwich/${pick.id}${accountCreatedSuffix}`);
 }
