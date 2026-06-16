@@ -34,11 +34,11 @@ export default async function ProfilePage({
     { data: userSandwiches },
     { data: userBites },
   ] = await Promise.all([
-    supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).single(),
+    supabase.from("profiles").select("display_name, avatar_url, creator_features").eq("id", user.id).single(),
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase
       .from("sandwiches_with_count")
-      .select("id, slug, title, approved, featured, created_at, image_url, bite_count")
+      .select("id, slug, title, approved, featured, created_at, image_url, bite_count, creator_note, creator_url")
       .eq("uploaded_by", user.id)
       .order(sort === "bites" ? "bite_count" : "created_at", { ascending: false }),
     supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
@@ -255,6 +255,9 @@ export default async function ProfilePage({
                   isFeatured={!!s.featured}
                   sparklineData={sparklineMap.get(s.id) ?? Array(7).fill(0)}
                   userId={user.id}
+                  creatorFeatures={!!profile?.creator_features}
+                  creatorNote={s.creator_note ?? null}
+                  creatorUrl={s.creator_url ?? null}
                 />
               </li>
             ))}

@@ -36,6 +36,7 @@ interface Props {
   submitted?: boolean;
   inboundRef?: string | null;
   existingBite?: { x: number; y: number } | null;
+  creatorNote?: string | null;
 }
 
 type State =
@@ -46,7 +47,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -381,6 +382,10 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           </span>
         </div>
       </div>
+
+      {creatorNote && (
+        <p className="px-0.5 text-sm text-stone-600 dark:text-stone-300">{creatorNote}</p>
+      )}
 
       {state.phase === "idle" && (
         <button

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { BiteCanvas, type BiterAvatar } from "@/components/BiteCanvas";
 import { ViewTracker } from "@/components/ViewTracker";
+import { VisitButton } from "@/components/VisitButton";
 
 export async function generateMetadata({
   params,
@@ -118,7 +119,7 @@ export default async function SandwichPage({
   ] = await Promise.all([
     fetchAllBites(),
     sandwich.uploaded_by
-      ? supabase.from("profiles").select("display_name").eq("id", sandwich.uploaded_by).single()
+      ? supabase.from("profiles").select("display_name, creator_features").eq("id", sandwich.uploaded_by).single()
       : Promise.resolve({ data: null }),
     supabase
       .from("bites")
@@ -135,6 +136,7 @@ export default async function SandwichPage({
   ]);
 
   const uploaderName = uploaderResult?.data?.display_name ?? null;
+  const creatorFeatures = uploaderResult?.data?.creator_features ?? false;
   const existingBite = existingBiteResult?.data as { x: number; y: number } | null ?? null;
   const isHot = !!hotData;
 
@@ -162,8 +164,15 @@ export default async function SandwichPage({
   return (
     <div className="mx-auto max-w-2xl">
       <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, ...(ref ? { referred_by: ref } : {}) }} />
-      <div className="mb-3">
+      <div className="mb-3 flex items-center gap-2">
         <h1 className="text-xl font-bold">{sandwich.title}</h1>
+        {creatorFeatures && sandwich.creator_url && (
+          <VisitButton
+            href={sandwich.creator_url}
+            sandwichId={sandwich.id}
+            title={sandwich.title}
+          />
+        )}
       </div>
       {sandwich.description && (
         <p className="mb-2 text-stone-500">{sandwich.description}</p>
@@ -188,6 +197,7 @@ export default async function SandwichPage({
         submitted={!!submitted}
         inboundRef={ref}
         existingBite={existingBite}
+        creatorNote={creatorFeatures ? (sandwich.creator_note ?? null) : null}
       />
     </div>
   );
