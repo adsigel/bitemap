@@ -126,7 +126,7 @@ export function TimelapseExporter({ sandwichId, title, imageUrl, biteCount }: Pr
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="text-xs text-stone-400 hover:text-stone-600 transition"
+        className="text-xs text-stone-400 hover:text-stone-600 transition dark:text-stone-500 dark:hover:text-stone-300"
       >
         Export timelapse
       </button>
@@ -135,7 +135,7 @@ export function TimelapseExporter({ sandwichId, title, imageUrl, biteCount }: Pr
 
   return (
     <div className="mt-2 flex items-center gap-3">
-      <label className="text-xs text-stone-500">
+      <label className="text-xs text-stone-500 dark:text-stone-400">
         Bites per frame
         <input
           type="number"
@@ -143,23 +143,23 @@ export function TimelapseExporter({ sandwichId, title, imageUrl, biteCount }: Pr
           max={biteCount}
           value={bitesPerFrame}
           onChange={(e) => setBitesPerFrame(Math.max(1, parseInt(e.target.value) || 1))}
-          className="ml-2 w-14 rounded border border-stone-200 px-2 py-0.5 text-xs"
+          className="ml-2 w-14 rounded border border-stone-200 bg-white px-2 py-0.5 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
         />
       </label>
-      <span className="text-xs text-stone-400">
+      <span className="text-xs text-stone-400 dark:text-stone-500">
         ≈ {Math.ceil(biteCount / bitesPerFrame)} frames
       </span>
       <button
         onClick={handleExport}
         disabled={exporting}
-        className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50 disabled:opacity-50"
+        className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
       >
         {exporting ? (status ?? "Working…") : "Export"}
       </button>
       {!exporting && (
         <button
           onClick={() => setExpanded(false)}
-          className="text-xs text-stone-400 hover:text-stone-600"
+          className="text-xs text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300"
         >
           Cancel
         </button>

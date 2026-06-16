@@ -26,7 +26,7 @@ export default async function AdminReviewPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-xl font-bold">Sandwich review queue</h1>
-      <p className="mb-6 text-stone-500">
+      <p className="mb-6 text-stone-500 dark:text-stone-400">
         {pending?.length
           ? `${pending.length} sandwich${pending.length === 1 ? "" : "es"} pending approval`
           : "All clear — nothing pending."}
@@ -53,7 +53,7 @@ export default async function AdminReviewPage() {
         {approved?.map((sandwich) => (
           <div
             key={sandwich.id}
-            className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm"
+            className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm dark:border-stone-700 dark:bg-stone-900"
           >
             <PolygonEditor
               sandwichId={sandwich.id}
@@ -65,16 +65,16 @@ export default async function AdminReviewPage() {
                 <input
                   name="title"
                   defaultValue={sandwich.title}
-                  className="flex-1 rounded-lg border border-stone-200 px-2 py-1 text-sm font-semibold focus:border-orange-400 focus:outline-none"
+                  className="flex-1 rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm font-semibold text-stone-800 focus:border-orange-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder-stone-500 dark:focus:border-orange-500"
                 />
                 <button
                   type="submit"
-                  className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50"
+                  className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-700"
                 >
                   Rename
                 </button>
               </form>
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-stone-400 dark:text-stone-500">
                 {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
               </p>
               <div className="mt-3 flex gap-2">
@@ -86,10 +86,10 @@ export default async function AdminReviewPage() {
                 >
                   <button
                     type="submit"
-                    className={`rounded-lg border px-3 py-1.5 text-xs transition hover:bg-stone-50 ${
+                    className={`rounded-lg border px-3 py-1.5 text-xs transition hover:bg-stone-50 dark:hover:bg-stone-800 ${
                       sandwich.featured
-                        ? "border-amber-300 text-amber-600"
-                        : "border-stone-200 text-stone-500"
+                        ? "border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
+                        : "border-stone-200 text-stone-500 dark:border-stone-700 dark:text-stone-400"
                     }`}
                   >
                     {sandwich.featured ? "🏆 Unfeature" : "Feature"}
@@ -103,7 +103,7 @@ export default async function AdminReviewPage() {
                 >
                   <button
                     type="submit"
-                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 transition hover:bg-stone-50"
+                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
                   >
                     Unpublish
                   </button>

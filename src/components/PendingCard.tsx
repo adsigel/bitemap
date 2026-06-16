@@ -24,7 +24,7 @@ export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm dark:border-stone-700 dark:bg-stone-900">
       <PolygonEditor
         sandwichId={sandwich.id}
         imageUrl={sandwich.image_url}
@@ -36,19 +36,19 @@ export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
           <input
             name="title"
             defaultValue={sandwich.title}
-            className="flex-1 rounded-lg border border-stone-200 px-2 py-1 text-sm font-semibold focus:border-orange-400 focus:outline-none"
+            className="flex-1 rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm font-semibold text-stone-800 focus:border-orange-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:focus:border-orange-500"
           />
           <button
             type="submit"
-            className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50"
+            className="rounded-lg border border-stone-200 px-3 py-1 text-xs text-stone-600 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-700"
           >
             Rename
           </button>
         </form>
         {sandwich.description && (
-          <p className="text-sm text-stone-500">{sandwich.description}</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400">{sandwich.description}</p>
         )}
-        <p className="mt-1 text-xs text-stone-400">
+        <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
           Submitted {new Date(sandwich.created_at).toLocaleString()}
         </p>
         <div className="mt-4 flex gap-3">
@@ -62,7 +62,7 @@ export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
           <form action={rejectSandwich.bind(null, sandwich.id)} className="flex-1">
             <button
               type="submit"
-              className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-medium text-red-600 transition hover:bg-red-100"
+              className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-medium text-red-600 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900"
             >
               Reject
             </button>

@@ -102,7 +102,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
   return (
     <div>
       <div
-        className={`relative aspect-[4/3] w-full bg-stone-100 ${editing && !closed ? "cursor-crosshair" : "cursor-default"}`}
+        className={`relative aspect-[4/3] w-full bg-stone-100 dark:bg-stone-800 ${editing && !closed ? "cursor-crosshair" : "cursor-default"}`}
         onClick={handleClick}
       >
         <Image src={imageUrl} alt="Sandwich" fill className="object-cover" sizes="672px" />
@@ -143,21 +143,21 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
 
       {/* Toolbar */}
       {saveError && (
-        <div className="border-t border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="border-t border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
           {saveError}
         </div>
       )}
-      <div className="flex items-center gap-3 border-t border-stone-100 bg-stone-50 px-3 py-2 text-xs">
+      <div className="flex items-center gap-3 border-t border-stone-100 bg-stone-50 px-3 py-2 text-xs dark:border-stone-800 dark:bg-stone-900">
         {!editing ? (
           <>
-            <span className="flex-1 text-stone-400">
+            <span className="flex-1 text-stone-400 dark:text-stone-500">
               {hasSaved ? `Bounds set — ${saved.length} points` : "No bounds set"}
             </span>
             {hasSaved && (
               <button
                 onClick={handleClear}
                 disabled={saving}
-                className="text-red-600 transition hover:text-red-700 disabled:opacity-50"
+                className="text-red-600 transition hover:text-red-700 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
               >
                 Clear
               </button>
@@ -171,7 +171,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
           </>
         ) : (
           <>
-            <span className="flex-1 text-stone-500">
+            <span className="flex-1 text-stone-500 dark:text-stone-400">
               {closed
                 ? `${draft.length} points — polygon closed`
                 : draft.length === 0
@@ -190,7 +190,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
             )}
             <button
               onClick={() => { setDraft([]); setClosed(false); }}
-              className="text-stone-400 transition hover:text-stone-600"
+              className="text-stone-400 transition hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300"
             >
               Clear
             </button>
@@ -205,7 +205,7 @@ export function PolygonEditor({ sandwichId, imageUrl, initialBounds, onPolygonCh
             )}
             <button
               onClick={cancelEditing}
-              className="text-stone-400 transition hover:text-stone-600"
+              className="text-stone-400 transition hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300"
             >
               Cancel
             </button>
