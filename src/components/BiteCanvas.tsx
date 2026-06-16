@@ -329,12 +329,12 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             )}
             {isHot && (
               <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
-                hot 🔥
+                🔥 hot
               </span>
             )}
             {allBites.length < 5 && (
               <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
-                new ✨
+                ✨ new
               </span>
             )}
           </div>
