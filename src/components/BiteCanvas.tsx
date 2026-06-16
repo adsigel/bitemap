@@ -237,11 +237,11 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       ? (state as { point: Point }).point
       : null;
 
-  const NextButton = () => (
+  const NextButton = ({ className }: { className?: string }) => (
     <button
       onClick={handleNext}
       disabled={navigating}
-      className="block w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+      className={`rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 ${className ?? "block w-full"}`}
     >
       {navigating ? "Loading…" : "Next sandwich →"}
     </button>
@@ -448,39 +448,51 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             )}
           </div>
           {showNudge && !userId && (
-            <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-3 text-center">
-              <p className="text-sm font-medium text-stone-700">You&apos;re on a roll! Save your bite history.</p>
+            <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-3 text-center dark:border-orange-900/40 dark:bg-orange-950/40">
+              <p className="text-sm font-medium text-stone-700 dark:text-stone-200">You&apos;re on a roll! Save your bite history.</p>
               <a
                 href="/sign-in"
                 className="mt-2 inline-block rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
               >
                 Create a free account
               </a>
+              <p className="mt-3">
+                <a
+                  href="https://ko-fi.com/bitemap"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
+                >
+                  Support Bitemap ☕
+                </a>
+              </p>
             </div>
           )}
-          {!submitted && (
-            <button
-              onClick={handleShare}
-              disabled={isSharing}
-              className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
-            >
-              {isSharing ? "Preparing…" : "Share my bite"}
-            </button>
-          )}
-          <NextButton />
+          <div className="flex gap-2">
+            {!submitted && (
+              <button
+                onClick={handleShare}
+                disabled={isSharing}
+                className="flex-1 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+              >
+                {isSharing ? "Preparing…" : "Share my bite"}
+              </button>
+            )}
+            <NextButton className={!submitted ? "flex-1" : "w-full"} />
+          </div>
         </div>
       )}
 
       {state.phase === "already_bitten" && (
-        <div className="space-y-3">
+        <div className="flex gap-2">
           <button
             onClick={handleShare}
             disabled={isSharing}
-            className="w-full rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
           >
             {isSharing ? "Preparing…" : "Share my bite"}
           </button>
-          <NextButton />
+          <NextButton className="flex-1" />
         </div>
       )}
     </div>

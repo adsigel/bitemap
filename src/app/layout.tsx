@@ -32,6 +32,7 @@ export default function RootLayout({
             <span>© 2026 Bitemap</span>
             <a href="/privacy" className="hover:text-stone-600">Privacy</a>
             <a href="/tos" className="hover:text-stone-600">Terms</a>
+            <a href="https://ko-fi.com/bitemap" target="_blank" rel="noopener noreferrer" className="hover:text-stone-600">Support Bitemap ☕</a>
           </div>
         </footer>
         </AmplitudeProvider>

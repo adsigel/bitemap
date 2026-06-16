@@ -48,10 +48,10 @@ export default async function WelcomePage() {
       <section className="px-4 py-16">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <h1 className="mb-5 text-4xl font-bold leading-tight text-stone-900 sm:text-5xl">
+            <h1 className="mb-5 text-4xl font-bold leading-tight text-stone-900 dark:text-white sm:text-5xl">
               Where would you bite?
             </h1>
-            <p className="mb-8 text-lg leading-relaxed text-stone-500">
+            <p className="mb-8 text-lg leading-relaxed text-stone-500 dark:text-stone-400">
               Bitemap is for sandwich lovers. Tap where you&apos;d take your
               next bite on a real sandwich, then see exactly where everyone else would bite too.
             </p>
@@ -68,36 +68,36 @@ export default async function WelcomePage() {
           {featured ? (
             <StaticHeatmap imageUrl={featured.image_url} bites={bites} title={featured.title} />
           ) : (
-            <div className="aspect-[4/3] rounded-2xl bg-stone-100" />
+            <div className="aspect-[4/3] rounded-2xl bg-stone-100 dark:bg-stone-800" />
           )}
         </div>
       </section>
 
       {/* Divider */}
-      <div className="border-t border-stone-200 mx-4" />
+      <div className="mx-4 border-t border-stone-200 dark:border-stone-700" />
 
       {/* How it works */}
       <section className="px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900">How it works</h2>
+        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">How it works</h2>
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="text-center">
             <div className="mb-4 text-4xl">📸</div>
-            <h3 className="mb-2 font-semibold text-stone-800">Submit a sando</h3>
-            <p className="text-sm leading-relaxed text-stone-500">
+            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Submit a sando</h3>
+            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
               Real eats from real places. Browse the collection and find one that looks good.
             </p>
           </div>
           <div className="text-center">
             <div className="mb-4 text-4xl">👆</div>
-            <h3 className="mb-2 font-semibold text-stone-800">Place your bite</h3>
-            <p className="text-sm leading-relaxed text-stone-500">
+            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Place your bite</h3>
+            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
               Tap wherever you&apos;d take your next bite. No wrong answers — just your taste.
             </p>
           </div>
           <div className="text-center">
             <div className="mb-4 text-4xl">🔥</div>
-            <h3 className="mb-2 font-semibold text-stone-800">The heatmap fills in</h3>
-            <p className="text-sm leading-relaxed text-stone-500">
+            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">The heatmap fills in</h3>
+            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
               See where everyone else bites. Corner biter? Center attacker? The map doesn&apos;t lie.
             </p>
           </div>
@@ -105,11 +105,11 @@ export default async function WelcomePage() {
       </section>
 
       {/* Divider */}
-      <div className="border-t border-stone-200 mx-4" />
+      <div className="mx-4 border-t border-stone-200 dark:border-stone-700" />
 
       {/* Testimonials */}
       <section className="px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900">What people are saying</h2>
+        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">What people are saying</h2>
         <TestimonialsCarousel />
       </section>
 

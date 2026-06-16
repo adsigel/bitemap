@@ -39,15 +39,15 @@ export function TestimonialsCarousel() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <figure className="flex flex-col rounded-2xl bg-stone-100 px-10 py-10 text-center" style={{ minHeight: 240 }}>
+      <figure className="flex flex-col rounded-2xl bg-stone-100 px-10 py-10 text-center dark:bg-stone-800" style={{ minHeight: 240 }}>
         <div
           className="flex flex-1 flex-col items-center justify-center transition-opacity duration-300"
           style={{ opacity: visible ? 1 : 0 }}
         >
-          <blockquote className="text-base leading-relaxed text-stone-700">
+          <blockquote className="text-base leading-relaxed text-stone-700 dark:text-stone-200">
             &ldquo;{quote}&rdquo;
           </blockquote>
-          <figcaption className="mt-6 text-sm font-medium text-stone-400">— u/{handle}</figcaption>
+          <figcaption className="mt-6 text-sm font-medium text-stone-400 dark:text-stone-500">— u/{handle}</figcaption>
         </div>
 
         <div className="mt-5 flex items-center justify-center gap-2">
@@ -57,7 +57,7 @@ export function TestimonialsCarousel() {
               onClick={() => goTo(i)}
               aria-label={`Go to quote ${i + 1}`}
               className={`h-2 rounded-full transition-all duration-300 ${
-                i === current ? "w-6 bg-orange-400" : "w-2 bg-stone-300 hover:bg-stone-400"
+                i === current ? "w-6 bg-orange-400" : "w-2 bg-stone-300 hover:bg-stone-400 dark:bg-stone-600 dark:hover:bg-stone-500"
               }`}
             />
           ))}
