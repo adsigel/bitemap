@@ -121,6 +121,7 @@ export default async function AdminReviewPage() {
                   title={sandwich.title}
                   imageUrl={sandwich.image_url}
                   biteCount={sandwich.bite_count}
+                  biteBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
                 />
               </div>
             </div>

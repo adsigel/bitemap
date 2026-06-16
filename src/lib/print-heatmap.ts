@@ -3,52 +3,87 @@
 import { contours } from "d3-contour";
 
 export type PrintTheme = "dark" | "light";
+export type CaptionPosition = "bottom-left" | "bottom-center" | "bottom-right" | "exclude";
+export type ExportSize = "social" | "small-print" | "large-print";
+export type PolygonStyle = "none" | "subtle" | "alternate";
 
 interface Bite {
   x: number;
   y: number;
 }
 
-interface Options {
+export interface PrintOptions {
   bites: Bite[];
   imageUrl: string;
   title: string;
   biteCount: number;
   theme: PrintTheme;
+  size: ExportSize;
+  captionPosition: CaptionPosition;
+  transparentBg: boolean;
+  polygonStyle: PolygonStyle;
+  biteBounds: { x: number; y: number }[] | null;
 }
 
-const SIZE = 3000;
-const LOGO_MAX_W = 320;
-const CAPTION_MARGIN = 100;
+export const EXPORT_SIZES: Record<ExportSize, { px: number; label: string; sub: string }> = {
+  "social":      { px: 2048, label: "Social",      sub: "2048px" },
+  "small-print": { px: 3600, label: "Small print", sub: "3600px" },
+  "large-print": { px: 7200, label: "Large print", sub: "7200px" },
+};
 
-const PALETTES: Record<PrintTheme, { bg: string; bands: string[]; caption: string; captionSub: string }> = {
+// Always render at max resolution then downscale — never upscale a raster.
+const RENDER_SIZE = 7200;
+
+// KDE grid uses a fixed base so compute time is constant across output sizes.
+// Contour paths are scaled from grid space up to RENDER_SIZE when drawing.
+const KDE_BASE = 3000;
+
+// Suppress cells below this fraction of peak density (kills low-density wisps).
+const DENSITY_FLOOR = 0.05;
+// Suppress cells where fewer than this many bites contributed (kills stray isolates).
+const MIN_CLUSTER_BITES = 6;
+
+// Layout constants — proportional to RENDER_SIZE so they scale correctly
+// when the rendered canvas is later downscaled to smaller output sizes.
+const FONT_SIZE  = Math.round(RENDER_SIZE * 0.0174); // ≈125px
+const LOGO_MAX_W = Math.round(RENDER_SIZE * 0.107);  // ≈770px
+const PADDING    = Math.round(RENDER_SIZE * 0.033);  // ≈240px
+const LOGO_GAP   = Math.round(RENDER_SIZE * 0.012);  // ≈86px
+
+const PALETTES: Record<PrintTheme, { bg: string; bands: string[]; caption: string; polygon: Record<"subtle" | "alternate", string> }> = {
   dark: {
-    bg: "#0d0803",
+    bg: "#1c1917", // stone-900
     bands: [
-      "#1f0d05",
-      "#3d1a08",
-      "#6b300f",
-      "#a84c1a",
-      "#d96428",
-      "#f08040",
-      "#f5b070",
+      "#3a2417", // dimmest, just above background
+      "#7c2d12", // orange-900
+      "#c2410c", // orange-700
+      "#ea580c", // orange-600
+      "#f97316", // orange-500 — brand
+      "#fb923c", // orange-400
+      "#fdba74", // orange-300 — brightest core
     ],
-    caption: "#e8d5c0",
-    captionSub: "#9a7a60",
+    caption: "#a8a29e",
+    polygon: {
+      subtle:    "#78716c",
+      alternate: "rgba(254, 215, 170, 0.35)", // orange-200 @ 30%
+    },
   },
   light: {
-    bg: "#faf7f4",
+    bg: "#f5f5f4", // stone-100
     bands: [
-      "#f0e4d8",
-      "#dfc4a8",
-      "#c89060",
-      "#a85c28",
-      "#7a3810",
-      "#521e06",
-      "#2e0e02",
+      "#ffedd5", // orange-100 — faintest wisp
+      "#fed7aa", // orange-200
+      "#fdba74", // orange-300
+      "#fb923c", // orange-400
+      "#f97316", // orange-500 — brand
+      "#ea580c", // orange-600
+      "#c2410c", // orange-700 — hottest core
     ],
-    caption: "#1a0e06",
-    captionSub: "#8a6a4a",
+    caption: "#78716c",
+    polygon: {
+      subtle:    "#a8a29e",                   // stone-400
+      alternate: "rgba(154, 52, 18, 0.35)",    // orange-900 @ 30%
+    },
   },
 };
 
@@ -78,24 +113,16 @@ function toGrayscaleCanvas(img: HTMLImageElement): HTMLCanvasElement {
   return off;
 }
 
-function drawSilhouette(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  theme: PrintTheme
-) {
+function drawSilhouette(ctx: CanvasRenderingContext2D, img: HTMLImageElement, theme: PrintTheme) {
   const opacity = theme === "dark" ? 0.13 : 0.08;
   const imgAspect = img.naturalWidth / img.naturalHeight;
   let drawW: number, drawH: number, offsetX: number, offsetY: number;
   if (imgAspect > 1) {
-    drawH = SIZE;
-    drawW = SIZE * imgAspect;
-    offsetX = (SIZE - drawW) / 2;
-    offsetY = 0;
+    drawH = RENDER_SIZE; drawW = RENDER_SIZE * imgAspect;
+    offsetX = (RENDER_SIZE - drawW) / 2; offsetY = 0;
   } else {
-    drawW = SIZE;
-    drawH = SIZE / imgAspect;
-    offsetX = 0;
-    offsetY = (SIZE - drawH) / 2;
+    drawW = RENDER_SIZE; drawH = RENDER_SIZE / imgAspect;
+    offsetX = 0; offsetY = (RENDER_SIZE - drawH) / 2;
   }
   const gray = toGrayscaleCanvas(img);
   ctx.save();
@@ -104,19 +131,54 @@ function drawSilhouette(
   ctx.restore();
 }
 
+// Smooth closed polygon using Catmull-Rom → cubic Bezier conversion.
+// Each vertex's control points are derived from its neighbours, producing
+// a curve that passes through every point with no kinks.
+function drawPolygon(
+  ctx: CanvasRenderingContext2D,
+  bounds: { x: number; y: number }[],
+  theme: PrintTheme,
+  style: Exclude<PolygonStyle, "none">
+) {
+  if (bounds.length < 3) return;
+  const n = bounds.length;
+  const pts = bounds.map((p) => ({ x: p.x * RENDER_SIZE, y: p.y * RENDER_SIZE }));
+
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    if (i === 0) ctx.moveTo(p1.x, p1.y);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+  ctx.closePath();
+
+  ctx.strokeStyle = PALETTES[theme].polygon[style];
+  ctx.lineWidth = RENDER_SIZE * 0.003;
+  ctx.lineJoin = "round";
+  ctx.stroke();
+}
+
 // Mirror the in-app density computation (cone kernel, adaptive radius, log scale)
 // so the print contours tell the same story as the in-app heatmap.
+// Grid is anchored to KDE_BASE — not RENDER_SIZE — so performance is constant.
 function computeDensityGrid(
   bites: Bite[],
   biteCount: number
 ): { density: Float32Array; gw: number; gh: number } {
-  const gw = Math.ceil(SIZE / 4);
-  const gh = Math.ceil(SIZE / 4);
+  const gw = Math.ceil(KDE_BASE / 4);
+  const gh = Math.ceil(KDE_BASE / 4);
   const density = new Float32Array(gw * gh);
+  const contributors = new Uint16Array(gw * gh);
 
-  const baseRadius = SIZE * 0.13;
-  const blobRadius =
-    baseRadius * Math.max(0.8, 1 - Math.log10(Math.max(1, biteCount)) * 0.07);
+  const baseRadius = KDE_BASE * 0.13;
+  const blobRadius = baseRadius * Math.max(0.8, 1 - Math.log10(Math.max(1, biteCount)) * 0.07);
   const gridBlobR = blobRadius / 4;
 
   for (const b of bites) {
@@ -130,8 +192,25 @@ function computeDensityGrid(
       for (let gx = x0; gx <= x1; gx++) {
         const dx = gx - cx, dy = gy - cy;
         const d = Math.sqrt(dx * dx + dy * dy) / gridBlobR;
-        if (d <= 1) density[gy * gw + gx] += 1 - d;
+        if (d <= 1) {
+          density[gy * gw + gx] += 1 - d;
+          contributors[gy * gw + gx]++;
+        }
       }
+    }
+  }
+
+  // Find peak before filtering so the floor is relative to true max density.
+  let maxDensity = 0;
+  for (let i = 0; i < density.length; i++) {
+    if (density[i] > maxDensity) maxDensity = density[i];
+  }
+  const floorDensity = maxDensity * DENSITY_FLOOR;
+
+  // Zero out cells that are too sparse or below the density floor.
+  for (let i = 0; i < density.length; i++) {
+    if (density[i] < floorDensity || contributors[i] < MIN_CLUSTER_BITES) {
+      density[i] = 0;
     }
   }
 
@@ -155,7 +234,6 @@ function drawContours(
   }
   if (maxDensity === 0) return;
 
-  // Log-scale thresholds match the in-app log1p normalization
   const logMax = Math.log1p(maxDensity);
   const n = palette.bands.length;
   const thresholds = palette.bands.map((_, i) => logMax * (i + 1) / (n + 1));
@@ -164,8 +242,8 @@ function drawContours(
   const contourGen = contours().size([gw, gh]).thresholds(thresholds);
   const contourPaths = contourGen(logDensity);
 
-  const scaleX = SIZE / gw;
-  const scaleY = SIZE / gh;
+  const scaleX = RENDER_SIZE / gw;
+  const scaleY = RENDER_SIZE / gh;
 
   contourPaths.forEach((contour, i) => {
     const color = palette.bands[Math.min(i, palette.bands.length - 1)];
@@ -194,19 +272,28 @@ async function drawCaption(
   title: string,
   biteCount: number,
   theme: PrintTheme,
+  position: Exclude<CaptionPosition, "exclude">,
   logoUrl: string
 ) {
   const palette = PALETTES[theme];
   const captionText = `where ${formatCount(biteCount)} ${biteCount === 1 ? "person" : "people"} bit a ${title}`;
 
-  // Main caption text
-  const fontSize = 52;
-  ctx.font = `300 ${fontSize}px -apple-system, 'Helvetica Neue', sans-serif`;
+  const align = position === "bottom-left" ? "left"
+              : position === "bottom-right" ? "right"
+              : "center";
+  const textX = position === "bottom-left" ? PADDING
+              : position === "bottom-right" ? RENDER_SIZE - PADDING
+              : RENDER_SIZE / 2;
+
+  ctx.font = `300 ${FONT_SIZE}px 'Fustat', -apple-system, 'Helvetica Neue', sans-serif`;
   ctx.fillStyle = palette.caption;
-  ctx.textAlign = "center";
+  ctx.textAlign = align;
   ctx.textBaseline = "alphabetic";
 
-  const maxWidth = SIZE - CAPTION_MARGIN * 4;
+  // Word-wrap caption text
+  const maxWidth = position === "bottom-center"
+    ? RENDER_SIZE - PADDING * 4
+    : RENDER_SIZE / 2 - PADDING * 2;
   const words = captionText.split(" ");
   const lines: string[] = [];
   let line = "";
@@ -221,61 +308,74 @@ async function drawCaption(
   }
   if (line) lines.push(line);
 
-  const lineHeight = fontSize * 1.45;
+  const lineHeight = FONT_SIZE * 1.45;
   const textBlockH = lines.length * lineHeight;
 
-  // Load logo
   const logo = await loadImage(logoUrl);
   const logoScale = Math.min(LOGO_MAX_W / logo.naturalWidth, 1);
   const logoW = logo.naturalWidth * logoScale;
   const logoH = logo.naturalHeight * logoScale;
 
-  // Layout: text block + gap + logo, all centered vertically in bottom band
-  const gap = 36;
-  const totalH = textBlockH + gap + logoH;
-  const blockTop = SIZE - CAPTION_MARGIN - totalH;
+  const totalH = textBlockH + LOGO_GAP + logoH;
+  const blockTop = RENDER_SIZE - PADDING - totalH;
 
-  // Draw text lines
   lines.forEach((l, i) => {
-    ctx.fillText(l, SIZE / 2, blockTop + i * lineHeight + fontSize);
+    ctx.fillText(l, textX, blockTop + i * lineHeight + FONT_SIZE);
   });
 
-  // Draw logo
-  const logoX = (SIZE - logoW) / 2;
-  const logoY = blockTop + textBlockH + gap;
-  ctx.drawImage(logo, logoX, logoY, logoW, logoH);
+  const logoX = position === "bottom-left" ? PADDING
+              : position === "bottom-right" ? RENDER_SIZE - PADDING - logoW
+              : (RENDER_SIZE - logoW) / 2;
+  ctx.drawImage(logo, logoX, blockTop + textBlockH + LOGO_GAP, logoW, logoH);
 }
 
-export async function generatePrintHeatmap(opts: Options): Promise<Blob> {
-  const { bites, imageUrl, title, biteCount, theme } = opts;
-  const palette = PALETTES[theme];
-
-  const canvas = document.createElement("canvas");
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext("2d")!;
-
-  // Background
-  ctx.fillStyle = palette.bg;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  // Sandwich silhouette
-  const sandwichImg = await loadImage(
-    `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
-  );
-  drawSilhouette(ctx, sandwichImg, theme);
-
-  // Contour bands
-  drawContours(ctx, bites, biteCount, theme);
-
-  // Caption + logo
-  const logoPath = theme === "dark" ? "/bitemap-dark.png" : "/bitemap.png";
-  await drawCaption(ctx, title, biteCount, theme, logoPath);
-
-  return new Promise<Blob>((resolve, reject) => {
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
       "image/png"
     );
   });
+}
+
+export async function generatePrintHeatmap(opts: PrintOptions): Promise<Blob> {
+  const { bites, imageUrl, title, biteCount, theme, size, captionPosition, transparentBg, polygonStyle, biteBounds } = opts;
+  const palette = PALETTES[theme];
+
+  await document.fonts.ready;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = RENDER_SIZE;
+  canvas.height = RENDER_SIZE;
+  const ctx = canvas.getContext("2d")!;
+
+  if (!transparentBg) {
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, RENDER_SIZE, RENDER_SIZE);
+  }
+
+  if (polygonStyle !== "none" && biteBounds && biteBounds.length >= 3) {
+    drawPolygon(ctx, biteBounds, theme, polygonStyle);
+  }
+
+  drawContours(ctx, bites, biteCount, theme);
+
+  if (captionPosition !== "exclude") {
+    const logoPath = theme === "dark" ? "/bitemap-dark.png" : "/bitemap.png";
+    await drawCaption(ctx, title, biteCount, theme, captionPosition, logoPath);
+  }
+
+  const targetPx = EXPORT_SIZES[size].px;
+  if (targetPx < RENDER_SIZE) {
+    const out = document.createElement("canvas");
+    out.width = targetPx;
+    out.height = targetPx;
+    const outCtx = out.getContext("2d")!;
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = "high";
+    outCtx.drawImage(canvas, 0, 0, targetPx, targetPx);
+    return canvasToBlob(out);
+  }
+
+  return canvasToBlob(canvas);
 }
