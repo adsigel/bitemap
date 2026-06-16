@@ -111,6 +111,11 @@ function dbscan(points: Point[], epsilon: number): Point[][] {
   return clusters;
 }
 
+export function computeClusters(bites: Point[]): Point[][] {
+  if (bites.length === 0) return [];
+  return dbscan(bites, adaptiveEpsilon(bites.length));
+}
+
 // allBites must include the user's point so it can be assigned to a cluster.
 export function getClusterCopy(userPoint: Point, allBites: Point[], title: string): ClusterCopy | null {
   if (allBites.length < MIN_BITES) return null;

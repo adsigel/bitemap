@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { DisplayNameEditor } from "@/components/DisplayNameEditor";
 import { ViewTracker } from "@/components/ViewTracker";
 import { SandwichCreatorCard } from "@/components/SandwichCreatorCard";
+import { interestingScore } from "@/lib/interesting-score";
+import type { Point } from "@/lib/types";
 
 function computePercentile(my: { x: number; y: number }, others: { x: number; y: number }[]): number {
   if (others.length === 0) return 50;
@@ -42,7 +44,7 @@ export default async function ProfilePage({
     supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
   ]);
 
-  const approvedSandwiches = (userSandwiches ?? []).filter(s => s.approved);
+  let approvedSandwiches = (userSandwiches ?? []).filter(s => s.approved);
   const pendingSandwiches = (userSandwiches ?? []).filter(s => !s.approved);
   const approvedIds = approvedSandwiches.map(s => s.id);
 
@@ -82,6 +84,27 @@ export default async function ProfilePage({
         if (dayIndex < 7) days[6 - dayIndex]++;
       }
       sparklineMap.set(sid, days);
+    }
+  }
+
+  if (sort === "interesting" && approvedIds.length > 0) {
+    const { data: scoringBites } = await supabase
+      .from("bites")
+      .select("sandwich_id, x, y")
+      .in("sandwich_id", approvedIds)
+      .limit(10000);
+
+    if (scoringBites?.length) {
+      const bitesBySandwich = new Map<string, Point[]>();
+      for (const b of scoringBites) {
+        if (!bitesBySandwich.has(b.sandwich_id)) bitesBySandwich.set(b.sandwich_id, []);
+        bitesBySandwich.get(b.sandwich_id)!.push({ x: b.x, y: b.y });
+      }
+      approvedSandwiches = [...approvedSandwiches].sort(
+        (a, b) =>
+          interestingScore(bitesBySandwich.get(b.id) ?? []) -
+          interestingScore(bitesBySandwich.get(a.id) ?? [])
+      );
     }
   }
 
@@ -201,7 +224,7 @@ export default async function ProfilePage({
             <div className="flex gap-3 text-sm">
               <a
                 href="/profile"
-                className={sort !== "bites" ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
+                className={!sort ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
               >
                 Most recent
               </a>
@@ -210,6 +233,12 @@ export default async function ProfilePage({
                 className={sort === "bites" ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
               >
                 Most bitten
+              </a>
+              <a
+                href="/profile?sort=interesting"
+                className={sort === "interesting" ? "font-medium text-orange-500" : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"}
+              >
+                Most interesting
               </a>
             </div>
           </div>
