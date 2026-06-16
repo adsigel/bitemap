@@ -109,7 +109,7 @@ export default async function WelcomePage() {
 
       {/* Testimonials */}
       <section className="px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">What people are saying</h2>
+        <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">Backhanded praise for Bitemap</h2>
         <TestimonialsCarousel />
       </section>
 

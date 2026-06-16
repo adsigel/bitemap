@@ -189,7 +189,7 @@ export default function UploadPage() {
     }[rejectedReason];
 
     return (
-      <div className="mx-auto flex max-w-sm flex-col items-center py-16 text-center">
+      <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center py-8 text-center">
         {fileInput}
         <div className="mb-2 text-4xl">{copy.emoji}</div>
         <h1 className="mb-2 text-2xl font-bold">{copy.heading}</h1>
@@ -209,7 +209,7 @@ export default function UploadPage() {
 
   if (uploadedId) {
     return (
-      <div className="mx-auto flex max-w-sm flex-col items-center py-16 text-center">
+      <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center py-8 text-center">
         {fileInput}
         <div className="mb-2 text-4xl">🥪</div>
         <h1 className="mb-2 text-2xl font-bold">Sandwich submitted!</h1>
