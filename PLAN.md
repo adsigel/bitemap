@@ -175,6 +175,42 @@ Server-side events use the Amplitude HTTP API directly (no Node SDK) via `src/li
 
 ---
 
+## Print Heatmaps
+
+High-resolution print-quality images of bite density for a given sandwich. Visually distinct from the in-app heatmap — abstract and artistic, suitable for physical prints, tote bags, etc.
+
+### Design
+
+- **Silhouette**: sandwich image drawn to canvas with `filter: grayscale(100%)` at low opacity (12% dark / 8% light). No external API. Gives a ghost of the sandwich shape without competing with the data or raising copyright issues.
+- **Density visualization**: filled topographic contour bands. KDE computed on a 200×200 grid using a Gaussian kernel. Grid smoothed with box-blur passes, then `d3-contour` generates polygon paths at N threshold levels. Bands drawn back-to-front (low density first).
+- **Color palettes**:
+  - Dark: near-black bg (`#0d0803`), bands from dark brown → burnt orange → pale amber
+  - Light: off-white bg (`#faf7f4`), bands from cream → warm tan → deep rust
+- **Canvas size**: 3000×3000px (10"×10" at 300dpi)
+- **Caption**: centered bottom — *"where 1,234 people bit a BLT"* + `bitemap.food` attribution
+- **Output**: PNG download via `canvas.toBlob('image/png')`
+
+### Implementation
+
+- [ ] Install `d3-contour` and `d3-array`
+- [ ] `src/lib/print-heatmap.ts` — pure canvas renderer (no React): `generatePrintHeatmap({ bites, imageUrl, title, theme }): Promise<Blob>`
+  - `drawSilhouette()` — grayscale ghost of sandwich image
+  - `computeKDE()` — Gaussian kernel density on 200×200 grid
+  - `smoothGrid()` — box-blur passes
+  - `drawContours()` — d3-contour paths → filled bands
+  - `drawCaption()` — title text + attribution
+- [ ] `src/components/PrintHeatmapButton.tsx` — client component, same pattern as `TimelapseButton`. Fetches bites, calls renderer, triggers download. Light/dark toggle.
+- [ ] Wire into admin review page (approved sandwiches) for now; consider adding to creator profile cards later.
+
+### Stack additions
+
+| Package | Purpose |
+|---|---|
+| `d3-contour` | Marching squares contour path generation |
+| `d3-array` | Needed by d3-contour (likely already transitive) |
+
+---
+
 ## Backlog
 
 - **Gamification** — badges (e.g. "First Biter", "Outlier", "Century Club"), leaderboards by Bitemark score or bite count

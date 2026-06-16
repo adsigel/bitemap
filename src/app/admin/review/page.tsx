@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { renameSandwich, unpublishSandwich, toggleFeatured } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
+import { PrintHeatmapButton } from "@/components/PrintHeatmapButton";
 import { PolygonEditor } from "@/components/PolygonEditor";
 import { PendingCard } from "@/components/PendingCard";
 
@@ -114,6 +115,14 @@ export default async function AdminReviewPage() {
                 imageUrl={sandwich.image_url}
                 biteCount={sandwich.bite_count}
               />
+              <div className="mt-2">
+                <PrintHeatmapButton
+                  sandwichId={sandwich.id}
+                  title={sandwich.title}
+                  imageUrl={sandwich.image_url}
+                  biteCount={sandwich.bite_count}
+                />
+              </div>
             </div>
           </div>
         ))}

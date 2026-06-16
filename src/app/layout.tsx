@@ -4,6 +4,7 @@ import { Fustat } from "next/font/google";
 import { AmplitudeProvider } from "@/components/AmplitudeProvider";
 import { AccountCreatedTracker } from "@/components/AccountCreatedTracker";
 import { Header } from "@/components/Header";
+import { DonationLink } from "@/components/DonationLink";
 import "./globals.css";
 
 const fustat = Fustat({ subsets: ["latin"] });
@@ -32,7 +33,7 @@ export default function RootLayout({
             <span>© 2026 Bitemap</span>
             <a href="/privacy" className="hover:text-stone-600">Privacy</a>
             <a href="/tos" className="hover:text-stone-600">Terms</a>
-            <a href="https://ko-fi.com/bitemap" target="_blank" rel="noopener noreferrer" className="hover:text-stone-600">Support Bitemap ☕</a>
+            <DonationLink source="footer" className="hover:text-stone-600">Support Bitemap ☕</DonationLink>
           </div>
         </footer>
         </AmplitudeProvider>

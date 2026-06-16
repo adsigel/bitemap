@@ -14,6 +14,7 @@ import { pointInPolygon } from "@/lib/geometry";
 import { computePercentile, outlierLabel } from "@/lib/percentile";
 import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId } from "@/lib/pick-next-sandwich";
+import { DonationLink } from "@/components/DonationLink";
 
 export interface BiterAvatar {
   avatarUrl: string | null;
@@ -457,14 +458,12 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                 Create a free account
               </a>
               <p className="mt-3">
-                <a
-                  href="https://ko-fi.com/bitemap"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <DonationLink
+                  source="post-bite"
                   className="text-xs text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
                 >
                   Support Bitemap ☕
-                </a>
+                </DonationLink>
               </p>
             </div>
           )}
