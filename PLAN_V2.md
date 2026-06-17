@@ -157,4 +157,5 @@ A user who is both an uploader-in-today's-set and a biter of today's set gets on
 ## Open Questions / Backlog for Next Pass
 
 - Pipeline depth (starting at 4 days) is a tuning knob — deeper pipeline means more advance notice for uploaders but more admin surface to manage and more days "locked in" before reacting to e.g. a great submission that should jump the queue. Revisit once there's real submission volume data.
+- `unpublishSandwich` (admin "Unpublish" button) sets `approved = false` but doesn't remove any `daily_slots` row the sandwich already occupies — an admin unpublishing a sandwich that's scheduled for an upcoming day won't actually pull it out of that day's set. Needs a fix before this matters in practice (i.e. before there's enough queue depth for "unpublish something already scheduled" to be a real scenario).
 - If/when we reintroduce a `featured`- or `hot`-style curation signal post-v2, decide whether it boosts repeat-pool selection odds, guarantees a slot, or is purely cosmetic (badge with no scheduling effect).
