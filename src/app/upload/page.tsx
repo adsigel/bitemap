@@ -55,6 +55,8 @@ export default function UploadPage() {
   const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [uploadedSlug, setUploadedSlug] = useState<string | null>(null);
   const [rejectedReason, setRejectedReason] = useState<"duplicate" | "not_a_sandwich" | null>(null);
+  const titleFocusTracked = useRef(false);
+  const titleChangeTracked = useRef(false);
 
   const supabase = createClient();
 
@@ -82,6 +84,7 @@ export default function UploadPage() {
 
   async function handleCropConfirm() {
     if (!srcUrl || !croppedAreaPixels) return;
+    track("Use Crop Clicked");
     const blob = await getCroppedImg(srcUrl, croppedAreaPixels);
     setCroppedBlob(blob);
     setPreview(URL.createObjectURL(blob));
@@ -91,6 +94,8 @@ export default function UploadPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!croppedBlob || !title.trim()) return;
+
+    track("Submit Sandwich Clicked", { title, ...(currentUserId ? { user_id: currentUserId } : {}) });
 
     setSubmitting(true);
     setStatus("Getting upload URL…");
@@ -294,7 +299,7 @@ export default function UploadPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => { track("Choose Photo Clicked"); fileRef.current?.click(); }}
           className="relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-stone-300 bg-stone-100 transition hover:border-orange-400 hover:bg-orange-100"
           style={{ aspectRatio: "4/3" }}
         >
@@ -329,7 +334,18 @@ export default function UploadPage() {
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (!titleChangeTracked.current) {
+                titleChangeTracked.current = true;
+                track("Sandwich Title Changed");
+              }
+            }}
+            onFocus={() => {
+              if (titleFocusTracked.current) return;
+              titleFocusTracked.current = true;
+              track("Sandwich Title Focused");
+            }}
             required
             placeholder="e.g. BLT on sourdough"
             className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"

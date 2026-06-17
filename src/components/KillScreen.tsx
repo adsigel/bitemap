@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AddSandoLink } from "@/components/AddSandoLink";
 
 const EMOJIS = ["🥪", "🥪", "🥪", "🥙", "🌯", "🫓", "🍞"];
 const COUNT = 28;
@@ -72,12 +73,12 @@ export function KillScreen({ recommended = [] }: Props) {
           <p className="text-stone-500 dark:text-stone-400">
             You&apos;ve left your mark. Keep the fun going by adding another sando.
           </p>
-          <a
-            href="/upload"
+          <AddSandoLink
+            source="all_done"
             className="mt-2 inline-block rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
           >
             Add a Sando →
-          </a>
+          </AddSandoLink>
         </div>
 
         {recommended.length > 0 && (

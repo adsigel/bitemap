@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
 import { GuestAvatarMenu } from "@/components/GuestAvatarMenu";
 import { HomeLink } from "@/components/HomeLink";
+import { AddSandoLink } from "@/components/AddSandoLink";
 
 export async function Header() {
   const supabase = await createClient();
@@ -32,12 +33,12 @@ export async function Header() {
       <HomeLink />
 
       <div className="flex flex-1 items-center justify-end">
-        <a
-          href="/upload"
+        <AddSandoLink
+          source="header"
           className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
         >
           Add a Sando
-        </a>
+        </AddSandoLink>
       </div>
     </header>
   );
