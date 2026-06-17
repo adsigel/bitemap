@@ -23,19 +23,21 @@ export async function Header() {
 
   return (
     <header className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <HomeLink />
-        <span className="hidden text-sm text-stone-500 dark:text-stone-300 sm:inline">
+        <span className="truncate text-sm text-stone-500 dark:text-stone-300">
           Your bite vs. everyone else&apos;s
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         <AddSandoLink
           source="header"
-          className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition hover:bg-orange-600 sm:h-auto sm:w-auto sm:rounded-lg sm:px-3 sm:py-1.5"
         >
-          Add a sando
+          <span className="text-xl leading-none sm:hidden" aria-hidden>+</span>
+          <span className="sr-only sm:hidden">Add a sando</span>
+          <span className="hidden text-sm font-medium sm:inline">Add a sando</span>
         </AddSandoLink>
         <AvatarLink displayName={displayName} avatarUrl={avatarUrl} />
       </div>

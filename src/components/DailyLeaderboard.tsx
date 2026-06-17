@@ -40,13 +40,13 @@ interface Props {
 // doesn't have this problem; onError still falls back just in case.
 function UploaderAvatar({ url, name }: { url: string | null; name: string }) {
   const [errored, setErrored] = useState(false);
-  if (!url || errored) return <GenericAvatarIcon iconClassName="h-2.5 w-2.5" />;
+  if (!url || errored) return <GenericAvatarIcon iconClassName="h-3.5 w-3.5" />;
   return (
     <Image
       src={url}
       alt={name}
-      width={16}
-      height={16}
+      width={22}
+      height={22}
       className="h-full w-full object-cover"
       onError={() => setErrored(true)}
     />
@@ -93,7 +93,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
         </span>
       ))}
 
-      <div className="relative z-10 w-full max-w-lg space-y-8 px-6 py-12">
+      <div className="relative z-10 w-full max-w-2xl space-y-8 px-6 py-12">
         <div className="space-y-3">
           <p className="text-6xl">🏆</p>
           <h1 className="text-2xl font-bold">You bit all 5 of today&apos;s sandos</h1>
@@ -109,16 +109,16 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
               <li key={e.id}>
                 <a
                   href={`/sandwich/${e.slug ?? e.id}?ref=daily-leaderboard`}
-                  className={`group flex items-center gap-3 rounded-lg p-2 transition hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  className={`group flex items-center gap-4 rounded-lg p-3 transition hover:bg-stone-100 dark:hover:bg-stone-800 ${
                     isTop ? "bg-orange-50 dark:bg-orange-950/30" : ""
                   }`}
                 >
-                  <span className={`w-6 shrink-0 text-center text-sm font-bold ${isTop ? "text-orange-500" : "text-stone-400"}`}>
+                  <span className={`w-7 shrink-0 text-center text-base font-bold ${isTop ? "text-orange-500" : "text-stone-400"}`}>
                     {e.rank}
                   </span>
                   <div
                     className="shrink-0 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800"
-                    style={{ position: "relative", width: 48, height: 48 }}
+                    style={{ position: "relative", width: 64, height: 64 }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -130,22 +130,22 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`truncate text-sm ${
+                      className={`truncate text-base ${
                         isTop ? "font-bold text-stone-900 dark:text-stone-100" : "font-medium text-stone-700 dark:text-stone-300"
                       }`}
                     >
                       {e.title} {e.isOwn && <span className="text-orange-500">(yours)</span>}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      <div className="h-4 w-4 shrink-0 overflow-hidden rounded-full">
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="h-5 w-5 shrink-0 overflow-hidden rounded-full">
                         <UploaderAvatar url={e.uploaderAvatarUrl} name={e.uploaderName ?? "Admin"} />
                       </div>
-                      <span className="truncate text-xs text-stone-400">
+                      <span className="truncate text-sm text-stone-400">
                         {e.uploaderName ?? "Admin"} {isTop && "🏆"}
                       </span>
                     </div>
                   </div>
-                  <span className={`shrink-0 text-sm ${isTop ? "font-bold text-orange-600 dark:text-orange-400" : "text-stone-400"}`}>
+                  <span className={`shrink-0 text-base ${isTop ? "font-bold text-orange-600 dark:text-orange-400" : "text-stone-400"}`}>
                     {e.biteCount}
                   </span>
                 </a>
