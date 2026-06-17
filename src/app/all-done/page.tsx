@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { KillScreen, type RecommendedSandwich } from "@/components/KillScreen";
 import { ViewTracker } from "@/components/ViewTracker";
+import { sendAllDoneEmailIfDue } from "@/lib/sandwich-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,10 @@ export default async function AllDonePage() {
   const sessionId = cookieStore.get("bitemap_session_id")?.value;
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    sendAllDoneEmailIfDue(user.id).catch(console.error);
+  }
 
   let recommended: RecommendedSandwich[] = [];
 

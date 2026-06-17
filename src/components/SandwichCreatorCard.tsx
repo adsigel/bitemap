@@ -6,6 +6,7 @@ import { Sparkline } from "@/components/Sparkline";
 import { TimelapseButton } from "@/components/TimelapseButton";
 import { updateCreatorContent } from "@/lib/creator-actions";
 import { formatCount } from "@/lib/format";
+import { MIN_BITES_FOR_TIMELAPSE } from "@/lib/timelapse";
 
 interface Props {
   id: string;
@@ -112,7 +113,7 @@ export function SandwichCreatorCard({ id, slug, title, imageUrl, biteCount, isHo
         >
           {isSharing ? "Sharing…" : "Share"}
         </button>
-        {biteCount >= 50 && (
+        {biteCount >= MIN_BITES_FOR_TIMELAPSE && (
           <TimelapseButton
             sandwichId={id}
             title={title}

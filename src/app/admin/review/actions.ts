@@ -3,6 +3,8 @@
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { emailHtml } from "@/lib/email-template";
+import { trackServer } from "@/lib/track-server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -81,6 +83,41 @@ export async function approveWithBounds(id: string, bounds: { x: number; y: numb
 export async function toggleFeatured(id: string, featured: boolean) {
   const supabase = createAdminClient();
   await supabase.from("sandwiches").update({ featured }).eq("id", id);
+
+  // toggleFeatured is always called with the inverse of the current value
+  // (see admin/review/page.tsx), so featured === true here is always a
+  // genuine false -> true transition, not a re-toggle.
+  if (featured) {
+    const { data: sandwich } = await supabase
+      .from("sandwiches")
+      .select("uploaded_by, title, slug")
+      .eq("id", id)
+      .single();
+
+    if (sandwich?.uploaded_by) {
+      const { data: authData } = await supabase.auth.admin.getUserById(sandwich.uploaded_by);
+      const email = authData?.user?.email;
+      if (email) {
+        const sandwichUrl = `https://bitemap.food/sandwich/${sandwich.slug ?? id}`;
+        const { error: emailError } = await resend.emails.send({
+          from: "Adam @ Bitemap <hello@bitemap.food>",
+          to: email,
+          subject: `🏆 ${sandwich.title} got featured`,
+          html: emailHtml({
+            intro: `<strong>${sandwich.title}</strong> just got featured on Bitemap. Brag a little — share it with friends.`,
+            ctaText: "Share my sando",
+            ctaUrl: `${sandwichUrl}?share=1`,
+            secondaryText: "See who's biting",
+            secondaryUrl: sandwichUrl,
+          }),
+          text: `${sandwich.title} just got featured on Bitemap. Brag a little — share it with friends.\n\nShare my sando: ${sandwichUrl}?share=1\nSee who's biting: ${sandwichUrl}`,
+        });
+        if (emailError) console.error("Resend error:", emailError);
+        await trackServer(sandwich.uploaded_by, "User Notified", { notification: "Sandwich Featured" });
+      }
+    }
+  }
+
   revalidatePath("/admin/review");
 }
 

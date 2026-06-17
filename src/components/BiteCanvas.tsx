@@ -160,9 +160,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
     nextIdRef.current = await nextIdPromise;
 
-    if (userId) {
-      checkBiteMilestones(sandwichId, userId).catch(console.error);
-    } else {
+    checkBiteMilestones(sandwichId).catch(console.error);
+
+    if (!userId) {
       const countKey = "bitemap_anon_bite_count";
       const count = parseInt(localStorage.getItem(countKey) ?? "0", 10) + 1;
       localStorage.setItem(countKey, String(count));
