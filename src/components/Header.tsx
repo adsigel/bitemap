@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { AvatarMenu } from "@/components/AvatarMenu";
-import { GuestAvatarMenu } from "@/components/GuestAvatarMenu";
+import { AvatarLink } from "@/components/AvatarLink";
 import { HomeLink } from "@/components/HomeLink";
 import { AddSandoLink } from "@/components/AddSandoLink";
 
@@ -10,35 +9,35 @@ export async function Header() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let profile = null;
+  let displayName: string | null = null;
+  let avatarUrl: string | null = null;
   if (user) {
     const { data } = await supabase
       .from("profiles")
       .select("display_name, avatar_url")
       .eq("id", user.id)
       .single();
-    profile = data;
+    displayName = data?.display_name ?? null;
+    avatarUrl = data?.avatar_url ?? null;
   }
 
   return (
-    <header className="flex items-center border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
-      <div className="flex flex-1 items-center">
-        {user && profile ? (
-          <AvatarMenu displayName={profile.display_name} avatarUrl={profile.avatar_url} />
-        ) : (
-          <GuestAvatarMenu />
-        )}
+    <header className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex items-center gap-3">
+        <HomeLink />
+        <span className="hidden text-sm text-stone-400 dark:text-stone-500 sm:inline">
+          Your bite vs. everyone else&apos;s
+        </span>
       </div>
 
-      <HomeLink />
-
-      <div className="flex flex-1 items-center justify-end">
+      <div className="flex items-center gap-3">
         <AddSandoLink
           source="header"
           className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
         >
           Add a Sando
         </AddSandoLink>
+        <AvatarLink displayName={displayName} avatarUrl={avatarUrl} />
       </div>
     </header>
   );

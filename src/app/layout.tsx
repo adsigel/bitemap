@@ -31,6 +31,7 @@ export default function RootLayout({
         <footer className="border-t border-stone-200 bg-white px-4 py-3 text-xs text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-500">
           <div className="flex items-center justify-center gap-6">
             <span>© 2026 Bitemap</span>
+            <a href="/about" className="hover:text-stone-600">About</a>
             <a href="/privacy" className="hover:text-stone-600">Privacy</a>
             <a href="/tos" className="hover:text-stone-600">Terms</a>
             <DonationLink source="footer" className="hover:text-stone-600">Support Bitemap ☕</DonationLink>

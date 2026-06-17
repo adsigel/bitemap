@@ -8,6 +8,7 @@ import { ProfileTeaser } from "@/components/ProfileTeaser";
 import { interestingScore } from "@/lib/interesting-score";
 import { computeBitemark } from "@/lib/bitemark";
 import { todayET, formatDateET } from "@/lib/et-date";
+import { signOut } from "@/app/sign-in/actions";
 import type { Point } from "@/lib/types";
 
 export default async function ProfilePage({
@@ -253,6 +254,14 @@ export default async function ProfilePage({
           </ul>
         </div>
       )}
+
+      <div className="pt-4 text-center">
+        <form action={signOut}>
+          <button type="submit" className="text-sm text-stone-400 underline hover:text-stone-600 dark:hover:text-stone-300">
+            Sign out
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
