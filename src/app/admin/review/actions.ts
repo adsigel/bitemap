@@ -5,8 +5,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { emailHtml } from "@/lib/email-template";
 import { trackServer } from "@/lib/track-server";
+import { assignToSchedule, fillPipeline } from "@/lib/daily-set";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function formatScheduledDate(day: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(`${day}T12:00:00Z`));
+}
 
 export async function renameSandwich(id: string, formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
@@ -27,34 +37,29 @@ export async function approveSandwich(id: string) {
 
   await supabase.from("sandwiches").update({ approved: true }).eq("id", id);
 
+  // Approval no longer means "live" -- it means "eligible to be scheduled."
+  // assignToSchedule places it in the next pipeline day with an open slot
+  // (respecting the per-uploader-per-day cap), then fillPipeline tops up
+  // any other pipeline days that are short on repeat-pool sandwiches.
+  const scheduledFor = await assignToSchedule(supabase, id);
+  await fillPipeline(supabase);
+
   if (sandwich?.uploaded_by) {
     const { data: authData } = await supabase.auth.admin.getUserById(sandwich.uploaded_by);
     const email = authData?.user?.email;
     if (email) {
       const sandwichUrl = `https://bitemap.food/sandwich/${sandwich.slug ?? id}`;
-      const shareUrl = `${sandwichUrl}?share=1`;
+      const dateLabel = formatScheduledDate(scheduledFor);
       const { error: emailError } = await resend.emails.send({
         from: "Adam @ Bitemap <hello@bitemap.food>",
         to: email,
-        subject: `${sandwich.title} is live — go get your first bites`,
-        html: `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#fff;font-family:sans-serif;color:#1c1917;">
-  <div style="max-width:480px;margin:0 auto;padding:48px 28px;">
-    <p style="font-size:16px;line-height:1.65;margin:0 0 32px 0;">
-      Your <strong>${sandwich.title}</strong> is now live on Bitemap. Share it with friends and watch the map fill in.
-    </p>
-    <a href="${shareUrl}" style="display:inline-block;background:#f97316;color:#fff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;margin-bottom:20px;">Share my bite</a>
-    <br>
-    <a href="${sandwichUrl}" style="font-size:14px;color:#78716c;text-decoration:none;">See who's biting</a>
-    <p style="margin:48px 0 0 0;font-size:14px;color:#57534e;line-height:1.6;">
-      Thanks for your support,<br>Adam @ Bitemap
-    </p>
-  </div>
-</body>
-</html>`,
-        text: `Your ${sandwich.title} is now live on Bitemap. Share it with friends and watch the map fill in.\n\nShare my bite: ${shareUrl}\nSee who's biting: ${sandwichUrl}\n\nThanks for your support,\nAdam @ Bitemap`,
+        subject: `Your sandwich is scheduled for ${dateLabel} 🥪`,
+        html: emailHtml({
+          intro: `<strong>${sandwich.title}</strong> passed review and is scheduled to go live on <strong>${dateLabel}</strong>. We'll email you again the moment it's live.`,
+          ctaText: "See who's biting",
+          ctaUrl: sandwichUrl,
+        }),
+        text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${sandwichUrl}`,
       });
       if (emailError) console.error("Resend error:", emailError);
     }
