@@ -14,6 +14,7 @@ Uploads no longer go live immediately on admin approval. They join a queue and a
 
 - **Repeat-slot picking**: hybrid. An algorithm proposes the leftover (non-new-release) slots for each upcoming day; admin can override any slot before it goes live.
 - **Per-uploader cap**: max 1 slot per uploader per day, enforced by the system (not just admin discretion) — guards against one prolific uploader (e.g. Adam, historically ~70% of all sandwiches) dominating a day. See [[project_bitemap]] / hot-email memory for the prior incident this guards against.
+  - **Known consequence**: a day can never have more sandwiches than there are distinct uploaders with available backlog/queue sandwiches that day. With only 4 distinct uploader identities in the system as of June 2026 (one account holding ~94% of the remaining backlog), days routinely land at 4/5 rather than 5/5. Decided to accept this and let it self-resolve as uploader diversity grows, rather than relax the cap or special-case the 5th slot.
 - **Rollover timezone**: US Eastern. "Midnight" everywhere below means midnight ET.
 - **Leaderboard history**: no per-day archive page. Instead, daily results are snapshotted and rolled up into browsable aggregate views: *yesterday's top bites*, *this week's top bites*, *last week's top bites*.
 - **Missed days**: a user always sees *today's* 5, whatever that is. Days they didn't visit simply roll into the general backlog — no catch-up queue.
