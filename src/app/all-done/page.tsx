@@ -78,7 +78,7 @@ export default async function AllDonePage() {
   return (
     <>
       <ViewTracker event="Daily Leaderboard Viewed" />
-      <DailyLeaderboard entries={entries} isFinal={isFinal} />
+      <DailyLeaderboard entries={entries} isFinal={isFinal} isAuthed={!!user} />
     </>
   );
 }
