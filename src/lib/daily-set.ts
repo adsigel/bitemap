@@ -1,42 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { todayET, addDays, etDayBounds } from "@/lib/et-date";
+
+export { todayET, addDays, etDayBounds };
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 export const SLOTS_PER_DAY = 5;
 export const PIPELINE_DAYS = 4; // today + 3 future days
-
-/** Today's calendar date in US Eastern, as YYYY-MM-DD. */
-export function todayET(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
-}
-
-export function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function etOffsetHours(dateStr: string): number {
-  // Probe at noon UTC so the result is unambiguous regardless of offset.
-  const probe = new Date(`${dateStr}T12:00:00Z`);
-  const tz = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    timeZoneName: "short",
-  })
-    .formatToParts(probe)
-    .find((p) => p.type === "timeZoneName")?.value;
-  return tz === "EDT" ? 4 : 5;
-}
-
-/** UTC instant range [start, end) covering one ET calendar day. */
-export function etDayBounds(dateStr: string): { start: Date; end: Date } {
-  const offset = etOffsetHours(dateStr);
-  const start = new Date(`${dateStr}T${String(offset).padStart(2, "0")}:00:00Z`);
-  const nextDay = addDays(dateStr, 1);
-  const nextOffset = etOffsetHours(nextDay);
-  const end = new Date(`${nextDay}T${String(nextOffset).padStart(2, "0")}:00:00Z`);
-  return { start, end };
-}
 
 interface DaySlotRow {
   sandwich_id: string;
