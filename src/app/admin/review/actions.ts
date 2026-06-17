@@ -43,7 +43,7 @@ export async function approveSandwich(id: string) {
 <body style="margin:0;padding:0;background:#fff;font-family:sans-serif;color:#1c1917;">
   <div style="max-width:480px;margin:0 auto;padding:48px 28px;">
     <p style="font-size:16px;line-height:1.65;margin:0 0 32px 0;">
-      Your <strong>${sandwich.title}</strong> is now live on Bitemap. You've already planted the first bite. Now share it with friends and watch the map fill in.
+      Your <strong>${sandwich.title}</strong> is now live on Bitemap. Share it with friends and watch the map fill in.
     </p>
     <a href="${shareUrl}" style="display:inline-block;background:#f97316;color:#fff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;margin-bottom:20px;">Share my bite</a>
     <br>
@@ -54,7 +54,7 @@ export async function approveSandwich(id: string) {
   </div>
 </body>
 </html>`,
-        text: `Your ${sandwich.title} is now live on Bitemap. You've already planted the first bite. Now share it with friends and watch the map fill in.\n\nShare my bite: ${shareUrl}\nSee who's biting: ${sandwichUrl}\n\nThanks for your support,\nAdam @ Bitemap`,
+        text: `Your ${sandwich.title} is now live on Bitemap. Share it with friends and watch the map fill in.\n\nShare my bite: ${shareUrl}\nSee who's biting: ${sandwichUrl}\n\nThanks for your support,\nAdam @ Bitemap`,
       });
       if (emailError) console.error("Resend error:", emailError);
     }

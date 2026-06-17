@@ -139,6 +139,7 @@ export default async function SandwichPage({
   const creatorFeatures = uploaderResult?.data?.creator_features ?? false;
   const existingBite = existingBiteResult?.data as { x: number; y: number } | null ?? null;
   const isHot = !!hotData;
+  const isAdmin = !!process.env.ADMIN_EMAIL && user?.email === process.env.ADMIN_EMAIL;
 
   const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
   const profileMap = new Map<string, { avatar_url: string | null; display_name: string }>();
@@ -198,6 +199,7 @@ export default async function SandwichPage({
         inboundRef={ref}
         existingBite={existingBite}
         creatorNote={creatorFeatures ? (sandwich.creator_note ?? null) : null}
+        isAdmin={isAdmin}
       />
     </div>
   );

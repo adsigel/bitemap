@@ -15,6 +15,7 @@ import { computePercentile, outlierLabel } from "@/lib/percentile";
 import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId } from "@/lib/pick-next-sandwich";
 import { formatCount } from "@/lib/format";
+import { exportHeatmapSnapshot } from "@/lib/export-heatmap";
 import { DonationLink } from "@/components/DonationLink";
 
 export interface BiterAvatar {
@@ -38,6 +39,7 @@ interface Props {
   inboundRef?: string | null;
   existingBite?: { x: number; y: number } | null;
   creatorNote?: string | null;
+  isAdmin?: boolean;
 }
 
 type State =
@@ -48,7 +50,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
@@ -59,6 +61,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
   const [allBites, setAllBites] = useState<Point[]>(initialBites);
   const [navigating, setNavigating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
@@ -227,6 +230,24 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       setIsSharing(false);
     }
   }, [state, allBites, title, userId, slug, sandwichId]);
+
+  const handleDownload = useCallback(async () => {
+    setIsDownloading(true);
+    try {
+      const blob = await exportHeatmapSnapshot(imageUrl, allBites);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.toLowerCase().replace(/\s+/g, "-")}-heatmap.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      track("Heatmap Image Downloaded", { sandwich_id: sandwichId, ...(userId ? { user_id: userId } : {}) });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [imageUrl, allBites, title, sandwichId, userId]);
 
   const autoShareFired = useRef(false);
   useEffect(() => {
@@ -485,6 +506,19 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                 {isSharing ? "Preparing…" : "Share my bite"}
               </button>
             )}
+            {isAdmin && (
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                title="Save heatmap image"
+                aria-label="Save heatmap image"
+                className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </button>
+            )}
             <NextButton className={!submitted ? "flex-1" : "w-full"} />
           </div>
         </div>
@@ -499,6 +533,19 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           >
             {isSharing ? "Preparing…" : "Share my bite"}
           </button>
+          {isAdmin && (
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              title="Save heatmap image"
+              aria-label="Save heatmap image"
+              className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+          )}
           <NextButton className="flex-1" />
         </div>
       )}
