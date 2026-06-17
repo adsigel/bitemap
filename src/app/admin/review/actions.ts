@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { emailHtml } from "@/lib/email-template";
 import { assignToSchedule, fillPipeline, todayET, formatDateET } from "@/lib/daily-set";
 
@@ -78,9 +79,17 @@ export async function approveWithBounds(id: string, bounds: { x: number; y: numb
 // Repeat-pool slots on future (not-yet-live) days can be swapped for a
 // specific different backlog sandwich, picked by the admin; new-release
 // slots and today's live day are not editable here.
+// The Queue tab's dropdown already filters out candidates that would
+// violate the cap, so this should only ever trigger from a stale page
+// (someone else swapped that slot, or that uploader's day filled up,
+// between page load and submit).
+function failSwap(): never {
+  redirect("/admin/review?tab=queue&swapError=1");
+}
+
 export async function swapRepeatSlot(date: string, oldSandwichId: string, formData: FormData) {
   const newSandwichId = formData.get("newSandwichId") as string;
-  if (!newSandwichId || date <= todayET()) return;
+  if (!newSandwichId || date <= todayET()) failSwap();
 
   const supabase = createAdminClient();
 
@@ -90,14 +99,14 @@ export async function swapRepeatSlot(date: string, oldSandwichId: string, formDa
     .eq("date", date)
     .eq("sandwich_id", oldSandwichId)
     .maybeSingle();
-  if (!oldSlot || oldSlot.is_new_release) return;
+  if (!oldSlot || oldSlot.is_new_release) failSwap();
 
   const { data: newSandwich } = await supabase
     .from("sandwiches")
     .select("uploaded_by")
     .eq("id", newSandwichId)
     .single();
-  if (!newSandwich) return;
+  if (!newSandwich) failSwap();
 
   // Guard against double-booking the new sandwich into the same day, or
   // breaking the per-uploader-per-day cap.
@@ -110,7 +119,7 @@ export async function swapRepeatSlot(date: string, oldSandwichId: string, formDa
       s.sandwich_id === newSandwichId ||
       (!!newSandwich.uploaded_by && s.sandwiches?.uploaded_by === newSandwich.uploaded_by)
   );
-  if (conflict) return;
+  if (conflict) failSwap();
 
   await supabase.from("daily_slots").delete().eq("date", date).eq("sandwich_id", oldSandwichId);
   await supabase.from("daily_slots").insert({ date, sandwich_id: newSandwichId, is_new_release: false });

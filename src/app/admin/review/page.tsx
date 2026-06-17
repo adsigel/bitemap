@@ -43,9 +43,9 @@ function formatShortTimestamp(ts: string): string {
 export default async function AdminReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; swapError?: string }>;
 }) {
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, swapError } = await searchParams;
   const tab: Tab = TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : "review";
 
   const supabase = await createClient();
@@ -89,7 +89,7 @@ export default async function AdminReviewPage({
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from("sandwiches_with_count")
-      .select("id, title, bite_count")
+      .select("id, title, bite_count, uploaded_by")
       .eq("approved", true)
       .lt("first_featured_date", today)
       .order("title", { ascending: true }),
@@ -113,15 +113,26 @@ export default async function AdminReviewPage({
     if (!current || row.date > current) lastFeaturedMap.set(row.sandwich_id, row.date);
   }
 
-  // Candidates for the swap dropdown: backlog sandwiches not already sitting
-  // in some other slot in the pipeline window.
-  const candidateOptions = (backlogCandidates ?? []).filter((c) => !slotSandwichIds.includes(c.id));
+  // Base candidate pool for any swap: backlog sandwiches not already sitting
+  // in some other slot in the pipeline window. Narrowed further per-day
+  // below, so the dropdown never offers a choice that would violate the
+  // per-uploader-per-day cap.
+  const baseCandidates = (backlogCandidates ?? []).filter((c) => !slotSandwichIds.includes(c.id));
 
   const slotsByDay = new Map<string, { sandwich_id: string; is_new_release: boolean }[]>();
   for (const row of pipelineSlots ?? []) {
     const list = slotsByDay.get(row.date) ?? [];
     list.push({ sandwich_id: row.sandwich_id, is_new_release: row.is_new_release });
     slotsByDay.set(row.date, list);
+  }
+
+  function candidatesForDay(day: string) {
+    const uploadersToday = new Set(
+      (slotsByDay.get(day) ?? [])
+        .map((s) => slotSandwichMap.get(s.sandwich_id)?.uploaded_by)
+        .filter((id): id is string => !!id)
+    );
+    return baseCandidates.filter((c) => !c.uploaded_by || !uploadersToday.has(c.uploaded_by));
   }
 
   return (
@@ -172,6 +183,11 @@ export default async function AdminReviewPage({
 
       {tab === "queue" && (
         <div>
+          {swapError && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              That swap couldn&apos;t be made — the sandwich you picked is no longer available for that day (it may have just been scheduled elsewhere, or its uploader already has a sandwich there). Refresh and try again.
+            </div>
+          )}
           <p className="mb-6 text-stone-500 dark:text-stone-400">
             Today through the next {PIPELINE_DAYS - 1} days. Swap a repeat slot to pull in a different backlog sandwich for that day.
           </p>
@@ -179,6 +195,7 @@ export default async function AdminReviewPage({
             {pipelineDays.map((day) => {
               const isToday = day === today;
               const daySlots = slotsByDay.get(day) ?? [];
+              const dayCandidates = candidatesForDay(day);
               return (
                 <div
                   key={day}
@@ -228,31 +245,36 @@ export default async function AdminReviewPage({
                             {lastFeatured ? formatShortDate(lastFeatured) : "never"}
                           </p>
                           {!isToday && !slot.is_new_release && (
-                            <form
-                              action={swapRepeatSlot.bind(null, day, slot.sandwich_id)}
-                              className="flex items-center gap-1"
-                            >
-                              <select
-                                name="newSandwichId"
-                                defaultValue=""
-                                className="min-w-0 flex-1 rounded border border-stone-200 bg-white px-1 py-1 text-xs dark:border-stone-700 dark:bg-stone-800"
+                            dayCandidates.length > 0 ? (
+                              <form
+                                action={swapRepeatSlot.bind(null, day, slot.sandwich_id)}
+                                className="flex items-center gap-1"
                               >
-                                <option value="" disabled>
-                                  Swap for…
-                                </option>
-                                {candidateOptions.map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    {c.title} ({c.bite_count})
+                                <select
+                                  name="newSandwichId"
+                                  defaultValue=""
+                                  required
+                                  className="min-w-0 flex-1 rounded border border-stone-200 bg-white px-1 py-1 text-xs dark:border-stone-700 dark:bg-stone-800"
+                                >
+                                  <option value="" disabled>
+                                    Swap for…
                                   </option>
-                                ))}
-                              </select>
-                              <button
-                                type="submit"
-                                className="rounded border border-stone-200 px-2 py-1 text-xs text-stone-500 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
-                              >
-                                Swap
-                              </button>
-                            </form>
+                                  {dayCandidates.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.title} ({c.bite_count})
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="submit"
+                                  className="rounded border border-stone-200 px-2 py-1 text-xs text-stone-500 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
+                                >
+                                  Swap
+                                </button>
+                              </form>
+                            ) : (
+                              <p className="text-xs text-stone-300 dark:text-stone-600">No candidates available</p>
+                            )
                           )}
                         </div>
                       );
