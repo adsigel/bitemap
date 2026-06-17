@@ -93,7 +93,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
         </span>
       ))}
 
-      <div className="relative z-10 w-full max-w-2xl space-y-8 px-6 py-12">
+      <div className="relative z-10 w-full max-w-2xl space-y-8 px-3 py-12 sm:px-6">
         <div className="space-y-3">
           <p className="text-6xl">🏆</p>
           <h1 className="text-2xl font-bold">You bit all 5 of today&apos;s sandos</h1>
@@ -109,11 +109,11 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
               <li key={e.id}>
                 <a
                   href={`/sandwich/${e.slug ?? e.id}?ref=daily-leaderboard`}
-                  className={`group flex items-center gap-4 rounded-lg p-3 transition hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  className={`group flex items-center gap-2 rounded-lg p-2 transition hover:bg-stone-100 dark:hover:bg-stone-800 sm:gap-4 sm:p-3 ${
                     isTop ? "bg-orange-50 dark:bg-orange-950/30" : ""
                   }`}
                 >
-                  <span className={`w-7 shrink-0 text-center text-base font-bold ${isTop ? "text-orange-500" : "text-stone-400"}`}>
+                  <span className={`w-5 shrink-0 text-center text-base font-bold sm:w-7 ${isTop ? "text-orange-500" : "text-stone-400"}`}>
                     {e.rank}
                   </span>
                   <div
@@ -130,7 +130,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`truncate text-base ${
+                      className={`text-base ${
                         isTop ? "font-bold text-stone-900 dark:text-stone-100" : "font-medium text-stone-700 dark:text-stone-300"
                       }`}
                     >
@@ -140,7 +140,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                       <div className="h-5 w-5 shrink-0 overflow-hidden rounded-full">
                         <UploaderAvatar url={e.uploaderAvatarUrl} name={e.uploaderName ?? "Admin"} />
                       </div>
-                      <span className="truncate text-sm text-stone-400">
+                      <span className="text-sm text-stone-400">
                         {e.uploaderName ?? "Admin"} {isTop && "🏆"}
                       </span>
                     </div>
