@@ -1,20 +1,13 @@
 import Image from "next/image";
-import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DisplayNameEditor } from "@/components/DisplayNameEditor";
 import { ViewTracker } from "@/components/ViewTracker";
 import { SandwichCreatorCard } from "@/components/SandwichCreatorCard";
+import { ProfileTeaser } from "@/components/ProfileTeaser";
 import { interestingScore } from "@/lib/interesting-score";
+import { computeBitemark } from "@/lib/bitemark";
 import type { Point } from "@/lib/types";
-
-function computePercentile(my: { x: number; y: number }, others: { x: number; y: number }[]): number {
-  if (others.length === 0) return 50;
-  const cx = others.reduce((s, b) => s + b.x, 0) / others.length;
-  const cy = others.reduce((s, b) => s + b.y, 0) / others.length;
-  const myDist = Math.hypot(my.x - cx, my.y - cy);
-  const moreCentral = others.filter((b) => Math.hypot(b.x - cx, b.y - cy) < myDist).length;
-  return Math.round((moreCentral / others.length) * 100);
-}
 
 export default async function ProfilePage({
   searchParams,
@@ -23,16 +16,26 @@ export default async function ProfilePage({
 }) {
   const { sort } = await searchParams;
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+
+  if (!user) {
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get("bitemap_session_id")?.value;
+    const { count: biteCount } = sessionId
+      ? await supabase.from("bites").select("*", { count: "exact", head: true }).eq("session_id", sessionId)
+      : { count: 0 };
+
+    return <ProfileTeaser biteCount={biteCount ?? 0} />;
+  }
 
   const [
     { data: profile },
     { count: biteCount },
     { data: userSandwiches },
-    { data: userBites },
+    { data: bitePercentiles },
   ] = await Promise.all([
     supabase.from("profiles").select("display_name, avatar_url, creator_features").eq("id", user.id).single(),
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
@@ -41,7 +44,7 @@ export default async function ProfilePage({
       .select("id, slug, title, approved, featured, created_at, image_url, bite_count, creator_note, creator_url")
       .eq("uploaded_by", user.id)
       .order(sort === "bites" ? "bite_count" : "created_at", { ascending: false }),
-    supabase.from("bites").select("sandwich_id, x, y").eq("user_id", user.id),
+    supabase.from("bites").select("uniqueness_percentile").eq("user_id", user.id).not("uniqueness_percentile", "is", null),
   ]);
 
   let approvedSandwiches = (userSandwiches ?? []).filter(s => s.approved);
@@ -108,28 +111,7 @@ export default async function ProfilePage({
     }
   }
 
-  let commonalityScore: number | null = null;
-  if (userBites?.length) {
-    const sandwichIds = [...new Set(userBites.map((b) => b.sandwich_id))];
-    const { data: allBites } = await supabase
-      .from("bites")
-      .select("sandwich_id, x, y")
-      .in("sandwich_id", sandwichIds);
-
-    if (allBites?.length) {
-      const bySandwich = new Map<string, { x: number; y: number }[]>();
-      for (const b of allBites) {
-        if (!bySandwich.has(b.sandwich_id)) bySandwich.set(b.sandwich_id, []);
-        bySandwich.get(b.sandwich_id)!.push({ x: b.x, y: b.y });
-      }
-      const percentiles = userBites.map((ub) => {
-        const all = bySandwich.get(ub.sandwich_id) ?? [];
-        const others = all.filter((b) => b.x !== ub.x || b.y !== ub.y);
-        return computePercentile(ub, others.length > 0 ? others : all);
-      });
-      commonalityScore = Math.round(percentiles.reduce((a, b) => a + b, 0) / percentiles.length);
-    }
-  }
+  const bitemark = computeBitemark((bitePercentiles ?? []).map(b => b.uniqueness_percentile!));
 
   const memberSince = new Date(user.created_at).toLocaleDateString("en-US", {
     month: "long",
@@ -159,36 +141,36 @@ export default async function ProfilePage({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
-          <p className="text-2xl font-bold">{biteCount ?? 0}</p>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+        <div className="rounded-xl border border-stone-200 bg-white px-3 py-9 text-center dark:border-stone-700 dark:bg-stone-800">
           <p className="text-xs text-stone-500 dark:text-stone-400">Bites Taken</p>
+          <p className="mt-1 text-2xl font-bold">{biteCount ?? 0}</p>
         </div>
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
-          <p className="text-2xl font-bold">{userSandwiches?.length ?? 0}</p>
+        <div className="rounded-xl border border-stone-200 bg-white px-3 py-9 text-center dark:border-stone-700 dark:bg-stone-800">
           <p className="text-xs text-stone-500 dark:text-stone-400">Sandos Submitted</p>
-        </div>
-        <div className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-center dark:border-stone-700 dark:bg-stone-800">
-          {commonalityScore !== null ? (
-            <>
-              <p className="text-2xl font-bold">{commonalityScore}</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Bitemark</p>
-            </>
-          ) : (
-            <>
-              <p className="text-2xl font-bold text-stone-300">—</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Bitemark</p>
-            </>
-          )}
+          <p className="mt-1 text-2xl font-bold">{userSandwiches?.length ?? 0}</p>
         </div>
       </div>
 
-      {commonalityScore !== null && (
-        <p className="text-center text-sm text-stone-500">
-          Your bites are more unique than{" "}
-          <span className="font-medium text-stone-700">{commonalityScore}% of other biters</span> on average.
-        </p>
-      )}
+      <div className="rounded-xl border border-stone-200 bg-white px-6 py-8 text-center dark:border-stone-700 dark:bg-stone-800">
+        <p className="text-xs text-stone-500 dark:text-stone-400">Your Bitemark</p>
+        {bitemark.locked ? (
+          <>
+            <p className="mt-2 text-2xl font-bold text-stone-300 dark:text-stone-600">🔒 Locked</p>
+            <p className="mt-2 text-stone-600 dark:text-stone-300">
+              Take {bitemark.remaining} more bite{bitemark.remaining === 1 ? "" : "s"} to reveal your biting style.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-3xl text-orange-500" style={{ fontWeight: 800 }}>{bitemark.persona}</p>
+            <p className="mt-2 text-stone-600 dark:text-stone-300">{bitemark.subhead}</p>
+            <p className="mt-2 text-sm text-stone-400 dark:text-stone-500">
+              More unique than {bitemark.score}% of biters
+            </p>
+          </>
+        )}
+      </div>
 
       {pendingSandwiches.length > 0 && (
         <div>

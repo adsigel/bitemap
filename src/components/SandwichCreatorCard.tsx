@@ -5,6 +5,7 @@ import { getOrCreateReferralToken } from "@/lib/referral-actions";
 import { Sparkline } from "@/components/Sparkline";
 import { TimelapseButton } from "@/components/TimelapseButton";
 import { updateCreatorContent } from "@/lib/creator-actions";
+import { formatCount } from "@/lib/format";
 
 interface Props {
   id: string;
@@ -91,7 +92,7 @@ export function SandwichCreatorCard({ id, slug, title, imageUrl, biteCount, isHo
             </div>
           )}
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-            {biteCount} {biteCount === 1 ? "bite" : "bites"}
+            {formatCount(biteCount)} {biteCount === 1 ? "bite" : "bites"}
           </p>
         </div>
 

@@ -14,6 +14,7 @@ import { pointInPolygon } from "@/lib/geometry";
 import { computePercentile, outlierLabel } from "@/lib/percentile";
 import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId } from "@/lib/pick-next-sandwich";
+import { formatCount } from "@/lib/format";
 import { DonationLink } from "@/components/DonationLink";
 
 export interface BiterAvatar {
@@ -140,11 +141,14 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     // Kick off next-sandwich lookup in parallel with the bite insert
     const nextIdPromise = pickNextSandwichId(sandwichId, supabase, userId);
 
+    const percentile = computePercentile(point, allBites);
+
     const { error } = await supabase.from("bites").insert({
       sandwich_id: sandwichId,
       x: point.x,
       y: point.y,
       session_id: sessionId,
+      uniqueness_percentile: percentile,
       ...(userId ? { user_id: userId } : {}),
     });
 
@@ -165,7 +169,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       if (count >= 5) setShowNudge(true);
     }
 
-    const percentile = computePercentile(point, allBites);
     const updatedBites = [...allBites, point];
     const cluster = getClusterCopy(point, updatedBites, title);
     setAllBites(updatedBites);
@@ -378,7 +381,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
             </div>
           )}
           <span className="text-xs text-stone-400">
-            {allBites.length} {allBites.length === 1 ? "bite" : "bites"}
+            {formatCount(allBites.length)} {allBites.length === 1 ? "bite" : "bites"}
           </span>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
+import { GuestAvatarMenu } from "@/components/GuestAvatarMenu";
 import { HomeLink } from "@/components/HomeLink";
 
 export async function Header() {
@@ -24,12 +25,7 @@ export async function Header() {
         {user && profile ? (
           <AvatarMenu displayName={profile.display_name} avatarUrl={profile.avatar_url} />
         ) : (
-          <a
-            href="/sign-in"
-            className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-          >
-            Sign in
-          </a>
+          <GuestAvatarMenu />
         )}
       </div>
 
