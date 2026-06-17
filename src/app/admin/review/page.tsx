@@ -126,13 +126,33 @@ export default async function AdminReviewPage({
     slotsByDay.set(row.date, list);
   }
 
+  // Two kinds of candidate for a given day's slot: an unused backlog
+  // sandwich (simple 1-for-1 replace), or a sandwich currently scheduled
+  // on a different non-today day (a full exchange -- the displaced
+  // sandwich moves into this slot's old spot, so nothing is dropped).
   function candidatesForDay(day: string) {
     const uploadersToday = new Set(
       (slotsByDay.get(day) ?? [])
         .map((s) => slotSandwichMap.get(s.sandwich_id)?.uploaded_by)
         .filter((id): id is string => !!id)
     );
-    return baseCandidates.filter((c) => !c.uploaded_by || !uploadersToday.has(c.uploaded_by));
+
+    const backlog = baseCandidates
+      .filter((c) => !c.uploaded_by || !uploadersToday.has(c.uploaded_by))
+      .map((c) => ({ id: c.id, title: c.title, biteCount: c.bite_count, currentDate: null as string | null }));
+
+    const scheduledElsewhere = pipelineDays
+      .filter((d) => d !== day && d !== today)
+      .flatMap((d) =>
+        (slotsByDay.get(d) ?? [])
+          .filter((s) => !s.is_new_release)
+          .map((s) => slotSandwichMap.get(s.sandwich_id))
+          .filter((s): s is NonNullable<typeof s> => !!s)
+          .filter((s) => !s.uploaded_by || !uploadersToday.has(s.uploaded_by))
+          .map((s) => ({ id: s.id, title: s.title, biteCount: s.bite_count, currentDate: d }))
+      );
+
+    return { backlog, scheduledElsewhere };
   }
 
   return (
@@ -245,7 +265,7 @@ export default async function AdminReviewPage({
                             {lastFeatured ? formatShortDate(lastFeatured) : "never"}
                           </p>
                           {!isToday && !slot.is_new_release && (
-                            dayCandidates.length > 0 ? (
+                            dayCandidates.backlog.length + dayCandidates.scheduledElsewhere.length > 0 ? (
                               <form
                                 action={swapRepeatSlot.bind(null, day, slot.sandwich_id)}
                                 className="flex items-center gap-1"
@@ -259,11 +279,24 @@ export default async function AdminReviewPage({
                                   <option value="" disabled>
                                     Swap for…
                                   </option>
-                                  {dayCandidates.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                      {c.title} ({c.bite_count})
-                                    </option>
-                                  ))}
+                                  {dayCandidates.backlog.length > 0 && (
+                                    <optgroup label="Backlog">
+                                      {dayCandidates.backlog.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                          {c.title} ({c.biteCount})
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                  {dayCandidates.scheduledElsewhere.length > 0 && (
+                                    <optgroup label="Currently scheduled">
+                                      {dayCandidates.scheduledElsewhere.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                          {c.title} ({c.biteCount}) — {formatShortDate(c.currentDate!)}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
                                 </select>
                                 <button
                                   type="submit"

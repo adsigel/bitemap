@@ -77,15 +77,20 @@ export async function approveWithBounds(id: string, bounds: { x: number; y: numb
 }
 
 // Repeat-pool slots on future (not-yet-live) days can be swapped for a
-// specific different backlog sandwich, picked by the admin; new-release
-// slots and today's live day are not editable here.
+// specific different sandwich, picked by the admin -- either an unused
+// backlog sandwich (simple 1-for-1 replace) or a sandwich already
+// scheduled on a different non-today day (a full exchange: the displaced
+// sandwich takes this slot's old spot, so nothing is dropped or
+// double-booked). New-release slots and today's live day are not
+// editable here.
 // The Queue tab's dropdown already filters out candidates that would
-// violate the cap, so this should only ever trigger from a stale page
-// (someone else swapped that slot, or that uploader's day filled up,
-// between page load and submit).
+// violate the cap, so failSwap() should only ever trigger from a stale
+// page (someone else changed a slot between page load and submit).
 function failSwap(): never {
   redirect("/admin/review?tab=queue&swapError=1");
 }
+
+type SlotUploaderRow = { sandwich_id: string; sandwiches: { uploaded_by: string | null } | null };
 
 export async function swapRepeatSlot(date: string, oldSandwichId: string, formData: FormData) {
   const newSandwichId = formData.get("newSandwichId") as string;
@@ -108,13 +113,60 @@ export async function swapRepeatSlot(date: string, oldSandwichId: string, formDa
     .single();
   if (!newSandwich) failSwap();
 
-  // Guard against double-booking the new sandwich into the same day, or
-  // breaking the per-uploader-per-day cap.
+  const { data: newSandwichSlot } = await supabase
+    .from("daily_slots")
+    .select("date, is_new_release")
+    .eq("sandwich_id", newSandwichId)
+    .maybeSingle();
+
+  if (newSandwichSlot && newSandwichSlot.date !== date) {
+    // Cross-day exchange: the target must be a repeat slot on a non-today day.
+    if (newSandwichSlot.is_new_release || newSandwichSlot.date <= todayET()) failSwap();
+    const otherDate = newSandwichSlot.date;
+
+    const { data: oldSandwich } = await supabase
+      .from("sandwiches")
+      .select("uploaded_by")
+      .eq("id", oldSandwichId)
+      .single();
+    if (!oldSandwich) failSwap();
+
+    const [{ data: daySlotsA }, { data: daySlotsB }] = await Promise.all([
+      supabase.from("daily_slots").select("sandwich_id, sandwiches(uploaded_by)").eq("date", date),
+      supabase.from("daily_slots").select("sandwich_id, sandwiches(uploaded_by)").eq("date", otherDate),
+    ]);
+
+    const conflictA = ((daySlotsA ?? []) as unknown as SlotUploaderRow[]).some(
+      (s) =>
+        s.sandwich_id !== oldSandwichId &&
+        !!newSandwich.uploaded_by &&
+        s.sandwiches?.uploaded_by === newSandwich.uploaded_by
+    );
+    const conflictB = ((daySlotsB ?? []) as unknown as SlotUploaderRow[]).some(
+      (s) =>
+        s.sandwich_id !== newSandwichId &&
+        !!oldSandwich.uploaded_by &&
+        s.sandwiches?.uploaded_by === oldSandwich.uploaded_by
+    );
+    if (conflictA || conflictB) failSwap();
+
+    await supabase.from("daily_slots").delete().eq("date", date).eq("sandwich_id", oldSandwichId);
+    await supabase.from("daily_slots").delete().eq("date", otherDate).eq("sandwich_id", newSandwichId);
+    await supabase.from("daily_slots").insert([
+      { date, sandwich_id: newSandwichId, is_new_release: false },
+      { date: otherDate, sandwich_id: oldSandwichId, is_new_release: false },
+    ]);
+    revalidatePath("/admin/review");
+    return;
+  }
+
+  // Simple backlog replace: guard against double-booking or breaking the
+  // per-uploader-per-day cap.
   const { data: daySlots } = await supabase
     .from("daily_slots")
     .select("sandwich_id, sandwiches(uploaded_by)")
     .eq("date", date);
-  const conflict = ((daySlots ?? []) as unknown as { sandwich_id: string; sandwiches: { uploaded_by: string | null } | null }[]).some(
+  const conflict = ((daySlots ?? []) as unknown as SlotUploaderRow[]).some(
     (s) =>
       s.sandwich_id === newSandwichId ||
       (!!newSandwich.uploaded_by && s.sandwiches?.uploaded_by === newSandwich.uploaded_by)
