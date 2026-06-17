@@ -32,8 +32,6 @@ interface Props {
   biteBounds?: Point[] | null;
   uploaderName?: string | null;
   biters?: BiterAvatar[];
-  isHot?: boolean;
-  featured?: boolean;
   autoShare?: boolean;
   submitted?: boolean;
   inboundRef?: string | null;
@@ -51,7 +49,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily" }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily" }: Props) {
   const router = useRouter();
   const pickNext = useCallback(
     (currentId: string, supabase: ReturnType<typeof createClient>, userId: string | null) =>
@@ -353,26 +351,14 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
           </div>
         )}
 
-        {(isHot || featured || allBites.length < 5) && (
+        {allBites.length < 5 && (
           <div
             className="pointer-events-none absolute z-10"
             style={{ top: '0.75rem', right: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}
           >
-            {featured && (
-              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
-                🏆 featured
-              </span>
-            )}
-            {isHot && (
-              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
-                🔥 hot
-              </span>
-            )}
-            {allBites.length < 5 && (
-              <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
-                ✨ new
-              </span>
-            )}
+            <span style={{ background: 'white', borderRadius: '9999px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, color: '#1c1917', boxShadow: '0 1px 3px rgba(0,0,0,0.10)', lineHeight: 1.4 }}>
+              ✨ new
+            </span>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { todayET, addDays, etDayBounds } from "@/lib/et-date";
+import { todayET, addDays, etDayBounds, formatDateET } from "@/lib/et-date";
 
-export { todayET, addDays, etDayBounds };
+export { todayET, addDays, etDayBounds, formatDateET };
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 

@@ -7,6 +7,7 @@ import { SandwichCreatorCard } from "@/components/SandwichCreatorCard";
 import { ProfileTeaser } from "@/components/ProfileTeaser";
 import { interestingScore } from "@/lib/interesting-score";
 import { computeBitemark } from "@/lib/bitemark";
+import { todayET, formatDateET } from "@/lib/et-date";
 import type { Point } from "@/lib/types";
 
 export default async function ProfilePage({
@@ -41,7 +42,7 @@ export default async function ProfilePage({
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase
       .from("sandwiches_with_count")
-      .select("id, slug, title, approved, featured, created_at, image_url, bite_count, creator_note, creator_url")
+      .select("id, slug, title, approved, scheduled_for, first_featured_date, created_at, image_url, bite_count, creator_note, creator_url")
       .eq("uploaded_by", user.id)
       .order(sort === "bites" ? "bite_count" : "created_at", { ascending: false }),
     supabase.from("bites").select("uniqueness_percentile").eq("user_id", user.id).not("uniqueness_percentile", "is", null),
@@ -51,7 +52,8 @@ export default async function ProfilePage({
   const pendingSandwiches = (userSandwiches ?? []).filter(s => !s.approved);
   const approvedIds = approvedSandwiches.map(s => s.id);
 
-  const hotSet = new Set<string>();
+  const today = todayET();
+  const todaysSlotIds = new Set<string>();
   const sparklineMap = new Map<string, number[]>();
 
   if (approvedIds.length > 0) {
@@ -60,8 +62,8 @@ export default async function ProfilePage({
     // sandwiches that get heavy traffic in a short window.
     const PAGE = 1000;
     const recentBites: { sandwich_id: string; created_at: string }[] = [];
-    const [{ data: hotData }] = await Promise.all([
-      supabase.from("hot_sandwiches").select("sandwich_id").in("sandwich_id", approvedIds),
+    const [{ data: todaysSlots }] = await Promise.all([
+      supabase.from("daily_slots").select("sandwich_id").eq("date", today).in("sandwich_id", approvedIds),
       (async () => {
         for (let page = 0; ; page++) {
           const { data } = await supabase
@@ -77,7 +79,7 @@ export default async function ProfilePage({
       })(),
     ]);
 
-    (hotData ?? []).forEach(h => hotSet.add(h.sandwich_id));
+    (todaysSlots ?? []).forEach(s => todaysSlotIds.add(s.sandwich_id));
 
     const now = Date.now();
     for (const sid of approvedIds) {
@@ -112,6 +114,12 @@ export default async function ProfilePage({
   }
 
   const bitemark = computeBitemark((bitePercentiles ?? []).map(b => b.uniqueness_percentile!));
+
+  function statusLabel(s: { id: string; first_featured_date: string | null }) {
+    if (todaysSlotIds.has(s.id)) return "Live today";
+    if (s.first_featured_date && s.first_featured_date > today) return `Scheduled for ${formatDateET(s.first_featured_date)}`;
+    return null;
+  }
 
   const memberSince = new Date(user.created_at).toLocaleDateString("en-US", {
     month: "long",
@@ -233,8 +241,7 @@ export default async function ProfilePage({
                   title={s.title}
                   imageUrl={s.image_url}
                   biteCount={s.bite_count ?? 0}
-                  isHot={hotSet.has(s.id)}
-                  isFeatured={!!s.featured}
+                  statusLabel={statusLabel(s)}
                   sparklineData={sparklineMap.get(s.id) ?? Array(7).fill(0)}
                   userId={user.id}
                   creatorFeatures={!!profile?.creator_features}

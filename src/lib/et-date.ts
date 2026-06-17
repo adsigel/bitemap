@@ -25,6 +25,15 @@ function etOffsetHours(dateStr: string): number {
   return tz === "EDT" ? 4 : 5;
 }
 
+export function formatDateET(day: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(`${day}T12:00:00Z`));
+}
+
 /** UTC instant range [start, end) covering one ET calendar day. */
 export function etDayBounds(dateStr: string): { start: Date; end: Date } {
   const offset = etOffsetHours(dateStr);

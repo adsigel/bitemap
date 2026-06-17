@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { renameSandwich, unpublishSandwich, toggleFeatured, removeRepeatSlot } from "./actions";
+import { renameSandwich, unpublishSandwich, removeRepeatSlot } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
 import { PrintHeatmapButton } from "@/components/PrintHeatmapButton";
 import { PolygonEditor } from "@/components/PolygonEditor";
@@ -174,23 +174,6 @@ export default async function AdminReviewPage() {
                 {sandwich.bite_count} bite{sandwich.bite_count === 1 ? "" : "s"}
               </p>
               <div className="mt-3 flex gap-2">
-                <form
-                  action={async () => {
-                    "use server";
-                    await toggleFeatured(sandwich.id, !sandwich.featured);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className={`rounded-lg border px-3 py-1.5 text-xs transition hover:bg-stone-50 dark:hover:bg-stone-800 ${
-                      sandwich.featured
-                        ? "border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
-                        : "border-stone-200 text-stone-500 dark:border-stone-700 dark:text-stone-400"
-                    }`}
-                  >
-                    {sandwich.featured ? "🏆 Unfeature" : "Feature"}
-                  </button>
-                </form>
                 <form
                   action={async () => {
                     "use server";

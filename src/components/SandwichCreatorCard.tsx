@@ -14,8 +14,7 @@ interface Props {
   title: string;
   imageUrl: string;
   biteCount: number;
-  isHot: boolean;
-  isFeatured: boolean;
+  statusLabel?: string | null;
   sparklineData: number[];
   userId: string;
   creatorFeatures?: boolean;
@@ -23,7 +22,7 @@ interface Props {
   creatorUrl?: string | null;
 }
 
-export function SandwichCreatorCard({ id, slug, title, imageUrl, biteCount, isHot, isFeatured, sparklineData, userId, creatorFeatures, creatorNote: initialNote, creatorUrl: initialUrl }: Props) {
+export function SandwichCreatorCard({ id, slug, title, imageUrl, biteCount, statusLabel, sparklineData, userId, creatorFeatures, creatorNote: initialNote, creatorUrl: initialUrl }: Props) {
   const [isSharing, setIsSharing] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [note, setNote] = useState(initialNote ?? "");
@@ -78,18 +77,11 @@ export function SandwichCreatorCard({ id, slug, title, imageUrl, biteCount, isHo
 
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-stone-800 dark:text-stone-100">{title}</p>
-          {(isHot || isFeatured) && (
+          {statusLabel && (
             <div className="mt-1 flex flex-wrap gap-1">
-              {isHot && (
-                <span className="rounded-full border border-stone-300 bg-white px-2 py-0.5 text-xs dark:border-stone-600 dark:bg-stone-700">
-                  🔥 hot
-                </span>
-              )}
-              {isFeatured && (
-                <span className="rounded-full border border-stone-300 bg-white px-2 py-0.5 text-xs dark:border-stone-600 dark:bg-stone-700">
-                  🏆 featured
-                </span>
-              )}
+              <span className="rounded-full border border-stone-300 bg-white px-2 py-0.5 text-xs dark:border-stone-600 dark:bg-stone-700">
+                {statusLabel}
+              </span>
             </div>
           )}
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">

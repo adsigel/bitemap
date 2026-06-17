@@ -130,7 +130,7 @@ export async function checkBiteMilestones(sandwichId: string) {
   const supabase = createAdminClient();
 
   const [sandwichResult, sandwichBiteResult] = await Promise.all([
-    supabase.from("sandwiches").select("uploaded_by, title, slug, hot_notified_at").eq("id", sandwichId).single(),
+    supabase.from("sandwiches").select("uploaded_by, title, slug").eq("id", sandwichId).single(),
     supabase.from("bites").select("*", { count: "exact", head: true }).eq("sandwich_id", sandwichId),
   ]);
 
@@ -195,40 +195,6 @@ export async function checkBiteMilestones(sandwichId: string) {
       }
     }
 
-    // Became "hot": this only fires once ever, gated by hot_notified_at,
-    // since hot_sandwiches is a live view with no other persisted event.
-    if (!sandwich.hot_notified_at) {
-      const { data: hotRow } = await supabase
-        .from("hot_sandwiches")
-        .select("sandwich_id")
-        .eq("sandwich_id", sandwichId)
-        .maybeSingle();
-
-      if (hotRow) {
-        const email = await getUploaderEmail(supabase, sandwich.uploaded_by);
-        if (email) {
-          emailJobs.push(
-            resend.emails.send({
-              from: "Adam @ Bitemap <hello@bitemap.food>",
-              to: email,
-              subject: `🔥 ${sandwich.title} is heating up`,
-              html: emailHtml({
-                intro: `<strong>${sandwich.title}</strong> is trending on Bitemap right now. Brag a little and share it with friends to make the most of it.`,
-                ctaText: "Share my sando",
-                ctaUrl: `${sandwichUrl}?share=1`,
-                secondaryText: "See who's biting",
-                secondaryUrl: sandwichUrl,
-              }),
-              text: `${sandwich.title} is trending on Bitemap right now. Brag a little and share it with friends to make the most of it.\n\nShare my sando: ${sandwichUrl}?share=1\nSee who's biting: ${sandwichUrl}`,
-            })
-          );
-          emailJobs.push(trackServer(sandwich.uploaded_by, "User Notified", { notification: "Sandwich Hot" }));
-        }
-        emailJobs.push(
-          Promise.resolve(supabase.from("sandwiches").update({ hot_notified_at: new Date().toISOString() }).eq("id", sandwichId))
-        );
-      }
-    }
   }
 
   if (emailJobs.length > 0) {

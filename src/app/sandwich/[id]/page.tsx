@@ -114,7 +114,6 @@ export default async function SandwichPage({
     bites,
     uploaderResult,
     { data: recentBites },
-    { data: hotData },
     existingBiteResult,
   ] = await Promise.all([
     fetchAllBites(),
@@ -127,18 +126,12 @@ export default async function SandwichPage({
       .eq("sandwich_id", sandwich.id)
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase
-      .from("hot_sandwiches")
-      .select("sandwich_id")
-      .eq("sandwich_id", sandwich.id)
-      .maybeSingle(),
     existingBiteQuery ?? Promise.resolve({ data: null }),
   ]);
 
   const uploaderName = uploaderResult?.data?.display_name ?? null;
   const creatorFeatures = uploaderResult?.data?.creator_features ?? false;
   const existingBite = existingBiteResult?.data as { x: number; y: number } | null ?? null;
-  const isHot = !!hotData;
   const isAdmin = !!process.env.ADMIN_EMAIL && user?.email === process.env.ADMIN_EMAIL;
 
   const loggedInIds = (recentBites ?? []).map(b => b.user_id).filter(Boolean) as string[];
@@ -192,8 +185,6 @@ export default async function SandwichPage({
         biteBounds={sandwich.bite_bounds as { x: number; y: number }[] | null}
         uploaderName={uploaderName}
         biters={biters}
-        isHot={isHot}
-        featured={!!sandwich.featured}
         autoShare={share === "1"}
         submitted={!!submitted}
         inboundRef={ref}
