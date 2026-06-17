@@ -73,16 +73,20 @@ export default async function AdminReviewPage({
 
   const slotSandwichIds = [...new Set((pipelineSlots ?? []).map((s) => s.sandwich_id))];
 
-  const [{ data: slotSandwiches }, { data: history }, { data: backlogCandidates }] = await Promise.all([
+  const [
+    { data: slotSandwiches, error: slotSandwichesError },
+    { data: history },
+    { data: backlogCandidates, error: backlogError },
+  ] = await Promise.all([
     slotSandwichIds.length > 0
       ? supabase
           .from("sandwiches_with_count")
           .select("id, title, image_url, created_at, uploaded_by, bite_count")
           .in("id", slotSandwichIds)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
     slotSandwichIds.length > 0
       ? supabase.from("daily_slots").select("sandwich_id, date").in("sandwich_id", slotSandwichIds).lt("date", today)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("sandwiches_with_count")
       .select("id, title, bite_count")
@@ -90,6 +94,9 @@ export default async function AdminReviewPage({
       .lt("first_featured_date", today)
       .order("title", { ascending: true }),
   ]);
+
+  if (slotSandwichesError) console.error("slotSandwiches query error:", slotSandwichesError);
+  if (backlogError) console.error("backlogCandidates query error:", backlogError);
 
   const slotSandwichMap = new Map((slotSandwiches ?? []).map((s) => [s.id, s]));
 
@@ -118,7 +125,7 @@ export default async function AdminReviewPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={`mx-auto ${tab === "queue" ? "max-w-5xl" : "max-w-2xl"}`}>
       <h1 className="mb-4 text-xl font-bold">Admin</h1>
 
       <nav className="mb-8 flex gap-1 border-b border-stone-200 dark:border-stone-700">
@@ -180,7 +187,7 @@ export default async function AdminReviewPage({
                   <p className="mb-3 text-sm font-semibold text-stone-700 dark:text-stone-300">
                     {formatDayLabel(day, isToday)}
                   </p>
-                  <div className="space-y-1.5">
+                  <div className="flex flex-wrap gap-4">
                     {daySlots.map((slot) => {
                       const sandwich = slotSandwichMap.get(slot.sandwich_id);
                       if (!sandwich) return null;
@@ -191,11 +198,12 @@ export default async function AdminReviewPage({
                       return (
                         <div
                           key={slot.sandwich_id}
-                          className="flex items-center gap-2.5 rounded-lg border border-stone-100 p-1.5 dark:border-stone-800"
+                          className="rounded-lg border border-stone-100 p-2 dark:border-stone-800"
+                          style={{ width: 256 }}
                         >
                           <div
-                            className="relative shrink-0 overflow-hidden rounded-md bg-stone-100 dark:bg-stone-800"
-                            style={{ width: 36, height: 36 }}
+                            className="relative mb-2 overflow-hidden rounded-md bg-stone-100 dark:bg-stone-800"
+                            style={{ width: 256, height: 256 }}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -205,28 +213,29 @@ export default async function AdminReviewPage({
                               style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                             />
                             {slot.is_new_release && (
-                              <span className="absolute left-0 top-0 rounded-br bg-orange-500 px-1 text-[8px] font-bold text-white">
+                              <span className="absolute left-1 top-1 rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                                 NEW
                               </span>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-stone-700 dark:text-stone-300">
-                              {sandwich.title}
-                            </p>
-                            <p className="truncate text-xs text-stone-400">
-                              {sandwich.bite_count} bites · by {uploaderName} · uploaded {formatShortTimestamp(sandwich.created_at)} · last featured {lastFeatured ? formatShortDate(lastFeatured) : "never"}
-                            </p>
-                          </div>
+                          <p className="truncate text-sm font-medium text-stone-700 dark:text-stone-300">
+                            {sandwich.title}
+                          </p>
+                          <p className="mb-2 text-xs text-stone-400">
+                            {sandwich.bite_count} bites · by {uploaderName}
+                            <br />
+                            uploaded {formatShortTimestamp(sandwich.created_at)} · last featured{" "}
+                            {lastFeatured ? formatShortDate(lastFeatured) : "never"}
+                          </p>
                           {!isToday && !slot.is_new_release && (
                             <form
                               action={swapRepeatSlot.bind(null, day, slot.sandwich_id)}
-                              className="flex shrink-0 items-center gap-1"
+                              className="flex items-center gap-1"
                             >
                               <select
                                 name="newSandwichId"
                                 defaultValue=""
-                                className="rounded border border-stone-200 bg-white px-1 py-1 text-xs dark:border-stone-700 dark:bg-stone-800"
+                                className="min-w-0 flex-1 rounded border border-stone-200 bg-white px-1 py-1 text-xs dark:border-stone-700 dark:bg-stone-800"
                               >
                                 <option value="" disabled>
                                   Swap for…
@@ -251,8 +260,8 @@ export default async function AdminReviewPage({
                     {Array.from({ length: Math.max(0, 5 - daySlots.length) }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
-                        className="rounded-lg border border-dashed border-stone-200 p-1.5 text-xs text-stone-300 dark:border-stone-700 dark:text-stone-600"
-                        style={{ height: 44 }}
+                        className="rounded-lg border border-dashed border-stone-200 dark:border-stone-700"
+                        style={{ width: 256, height: 256 }}
                       />
                     ))}
                   </div>
