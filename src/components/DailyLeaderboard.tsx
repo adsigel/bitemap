@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { AddSandoLink } from "@/components/AddSandoLink";
 import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
 
@@ -31,6 +32,25 @@ interface Props {
   entries: LeaderboardEntry[];
   isFinal: boolean;
   isAuthed: boolean;
+}
+
+// Google avatar URLs occasionally fail when hotlinked directly by the
+// browser (intermittent rate-limiting on lh3.googleusercontent.com).
+// next/image fetches server-side instead, same as the header avatar which
+// doesn't have this problem; onError still falls back just in case.
+function UploaderAvatar({ url, name }: { url: string | null; name: string }) {
+  const [errored, setErrored] = useState(false);
+  if (!url || errored) return <GenericAvatarIcon iconClassName="h-2.5 w-2.5" />;
+  return (
+    <Image
+      src={url}
+      alt={name}
+      width={16}
+      height={16}
+      className="h-full w-full object-cover"
+      onError={() => setErrored(true)}
+    />
+  );
 }
 
 export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
@@ -118,12 +138,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                     </p>
                     <div className="mt-0.5 flex items-center gap-1.5">
                       <div className="h-4 w-4 shrink-0 overflow-hidden rounded-full">
-                        {e.uploaderAvatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={e.uploaderAvatarUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <GenericAvatarIcon iconClassName="h-2.5 w-2.5" />
-                        )}
+                        <UploaderAvatar url={e.uploaderAvatarUrl} name={e.uploaderName ?? "Admin"} />
                       </div>
                       <span className="truncate text-xs text-stone-400">
                         {e.uploaderName ?? "Admin"} {isTop && "🏆"}
