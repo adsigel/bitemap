@@ -285,7 +285,7 @@ export default function UploadPage() {
         <div className="mb-2 text-4xl">🥪</div>
         <h1 className="mb-2 text-2xl font-bold">Sandwich submitted!</h1>
         <p className="mb-8 text-stone-500">
-          It&apos;ll show up once we review it. Create an account to track your submissions.
+          We&apos;ll review it, then schedule it for a future day. Create an account so we can email you the date.
         </p>
         <a
           href="/sign-in"

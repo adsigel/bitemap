@@ -180,7 +180,7 @@ export default async function SandwichPage({
       )}
       {submitted && !sandwich.approved && (
         <p className="mb-4 text-center text-sm text-orange-600">
-          We&apos;ll send you an email once your sandwich is live — usually just a few minutes.
+          We&apos;ll email you once it&apos;s reviewed and scheduled, then again the day it goes live.
         </p>
       )}
       <BiteCanvas
