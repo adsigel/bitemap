@@ -37,6 +37,13 @@ export default async function AllDonePage() {
 
   const sandwichById = new Map((sandwiches ?? []).map((s) => [s.id, s]));
 
+  const uploaderIds = [...new Set((sandwiches ?? []).map((s) => s.uploaded_by).filter((id): id is string => !!id))];
+  const { data: uploaderProfiles } =
+    uploaderIds.length > 0
+      ? await supabase.from("profiles").select("id, display_name, avatar_url").in("id", uploaderIds)
+      : { data: [] };
+  const uploaderById = new Map((uploaderProfiles ?? []).map((p) => [p.id, p]));
+
   let counts: { sandwich_id: string; bite_count: number }[];
   const isFinal = (snapshot?.length ?? 0) > 0;
 
@@ -63,6 +70,7 @@ export default async function AllDonePage() {
     .map((c, i) => {
       const sandwich = sandwichById.get(c.sandwich_id);
       if (!sandwich) return null;
+      const uploader = sandwich.uploaded_by ? uploaderById.get(sandwich.uploaded_by) : null;
       return {
         id: sandwich.id,
         slug: sandwich.slug ?? null,
@@ -71,6 +79,8 @@ export default async function AllDonePage() {
         biteCount: c.bite_count,
         rank: i + 1,
         isOwn: !!user && sandwich.uploaded_by === user.id,
+        uploaderName: uploader?.display_name ?? null,
+        uploaderAvatarUrl: uploader?.avatar_url ?? null,
       };
     })
     .filter((e): e is LeaderboardEntry => e !== null);

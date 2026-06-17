@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AddSandoLink } from "@/components/AddSandoLink";
+import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
 
 const EMOJIS = ["🥪", "🥪", "🥪", "🥙", "🌯", "🫓", "🍞"];
 const COUNT = 28;
@@ -22,6 +23,8 @@ export interface LeaderboardEntry {
   biteCount: number;
   rank: number;
   isOwn: boolean;
+  uploaderName: string | null;
+  uploaderAvatarUrl: string | null;
 }
 
 interface Props {
@@ -105,13 +108,28 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                     />
                   </div>
-                  <p
-                    className={`min-w-0 flex-1 truncate text-sm ${
-                      isTop ? "font-bold text-stone-900 dark:text-stone-100" : "font-medium text-stone-700 dark:text-stone-300"
-                    }`}
-                  >
-                    {e.title} {e.isOwn && <span className="text-orange-500">(yours)</span>}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`truncate text-sm ${
+                        isTop ? "font-bold text-stone-900 dark:text-stone-100" : "font-medium text-stone-700 dark:text-stone-300"
+                      }`}
+                    >
+                      {e.title} {e.isOwn && <span className="text-orange-500">(yours)</span>}
+                    </p>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <div className="h-4 w-4 shrink-0 overflow-hidden rounded-full">
+                        {e.uploaderAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.uploaderAvatarUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <GenericAvatarIcon iconClassName="h-2.5 w-2.5" />
+                        )}
+                      </div>
+                      <span className="truncate text-xs text-stone-400">
+                        {e.uploaderName ?? "Admin"} {isTop && "🏆"}
+                      </span>
+                    </div>
+                  </div>
                   <span className={`shrink-0 text-sm ${isTop ? "font-bold text-orange-600 dark:text-orange-400" : "text-stone-400"}`}>
                     {e.biteCount}
                   </span>

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
 
 interface Props {
   displayName: string | null;
@@ -25,9 +26,7 @@ export function AvatarLink({ displayName, avatarUrl }: Props) {
           {displayName[0].toUpperCase()}
         </div>
       ) : (
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-sm dark:bg-stone-700">
-          🥪
-        </div>
+        <GenericAvatarIcon iconClassName="h-4 w-4" />
       )}
     </a>
   );

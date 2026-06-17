@@ -16,6 +16,7 @@ import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId, pickNextBacklogSandwichId } from "@/lib/pick-next-sandwich";
 import { formatCount } from "@/lib/format";
 import { exportHeatmapSnapshot } from "@/lib/export-heatmap";
+import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
 
 export interface BiterAvatar {
   avatarUrl: string | null;
@@ -379,14 +380,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                       {b.initial}
                     </div>
                   ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center"
-                      style={{ background: ['#d6d3d1', '#a8a29e', '#78716c'][i % 3] }}
-                    >
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="white">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z" />
-                      </svg>
-                    </div>
+                    <GenericAvatarIcon background={['#d6d3d1', '#a8a29e', '#78716c'][i % 3]} />
                   )}
                 </div>
               ))}
