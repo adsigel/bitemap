@@ -121,7 +121,7 @@ export async function saveSandwich(args: {
   return { error: error?.message ?? null, id: data?.id ?? null, slug: data?.slug ?? null };
 }
 
-async function getUploaderEmail(supabase: ReturnType<typeof createAdminClient>, uploaderId: string) {
+export async function getUploaderEmail(supabase: ReturnType<typeof createAdminClient>, uploaderId: string) {
   const { data: authData } = await supabase.auth.admin.getUserById(uploaderId);
   return authData?.user?.email ?? null;
 }
