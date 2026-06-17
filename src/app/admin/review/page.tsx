@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { renameSandwich, unpublishSandwich, removeRepeatSlot } from "./actions";
+import { renameSandwich, unpublishSandwich, swapRepeatSlot } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
 import { PrintHeatmapButton } from "@/components/PrintHeatmapButton";
 import { PolygonEditor } from "@/components/PolygonEditor";
@@ -24,6 +24,20 @@ function formatDayLabel(day: string, isToday: boolean): string {
     day: "numeric",
   }).format(new Date(`${day}T12:00:00Z`));
   return isToday ? `Today — ${weekdayDate}` : weekdayDate;
+}
+
+// For date-only strings (YYYY-MM-DD) like daily_slots.date.
+function formatShortDate(day: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" }).format(
+    new Date(`${day}T12:00:00Z`)
+  );
+}
+
+// For full timestamps like sandwiches.created_at.
+function formatShortTimestamp(ts: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" }).format(
+    new Date(ts)
+  );
 }
 
 export default async function AdminReviewPage({
@@ -58,11 +72,43 @@ export default async function AdminReviewPage({
   ]);
 
   const slotSandwichIds = [...new Set((pipelineSlots ?? []).map((s) => s.sandwich_id))];
-  const { data: slotSandwiches } =
+
+  const [{ data: slotSandwiches }, { data: history }, { data: backlogCandidates }] = await Promise.all([
     slotSandwichIds.length > 0
-      ? await supabase.from("sandwiches").select("id, title, image_url").in("id", slotSandwichIds)
-      : { data: [] };
+      ? supabase
+          .from("sandwiches_with_count")
+          .select("id, title, image_url, created_at, uploaded_by, bite_count")
+          .in("id", slotSandwichIds)
+      : Promise.resolve({ data: [] }),
+    slotSandwichIds.length > 0
+      ? supabase.from("daily_slots").select("sandwich_id, date").in("sandwich_id", slotSandwichIds).lt("date", today)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("sandwiches_with_count")
+      .select("id, title, bite_count")
+      .eq("approved", true)
+      .lt("first_featured_date", today)
+      .order("title", { ascending: true }),
+  ]);
+
   const slotSandwichMap = new Map((slotSandwiches ?? []).map((s) => [s.id, s]));
+
+  const uploaderIds = [...new Set((slotSandwiches ?? []).map((s) => s.uploaded_by).filter((id): id is string => !!id))];
+  const { data: uploaderProfiles } =
+    uploaderIds.length > 0
+      ? await supabase.from("profiles").select("id, display_name").in("id", uploaderIds)
+      : { data: [] };
+  const uploaderNameMap = new Map((uploaderProfiles ?? []).map((p) => [p.id, p.display_name]));
+
+  const lastFeaturedMap = new Map<string, string>();
+  for (const row of history ?? []) {
+    const current = lastFeaturedMap.get(row.sandwich_id);
+    if (!current || row.date > current) lastFeaturedMap.set(row.sandwich_id, row.date);
+  }
+
+  // Candidates for the swap dropdown: backlog sandwiches not already sitting
+  // in some other slot in the pipeline window.
+  const candidateOptions = (backlogCandidates ?? []).filter((c) => !slotSandwichIds.includes(c.id));
 
   const slotsByDay = new Map<string, { sandwich_id: string; is_new_release: boolean }[]>();
   for (const row of pipelineSlots ?? []) {
@@ -134,15 +180,22 @@ export default async function AdminReviewPage({
                   <p className="mb-3 text-sm font-semibold text-stone-700 dark:text-stone-300">
                     {formatDayLabel(day, isToday)}
                   </p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="space-y-1.5">
                     {daySlots.map((slot) => {
                       const sandwich = slotSandwichMap.get(slot.sandwich_id);
                       if (!sandwich) return null;
+                      const uploaderName = sandwich.uploaded_by
+                        ? uploaderNameMap.get(sandwich.uploaded_by) ?? "Unknown"
+                        : "Admin";
+                      const lastFeatured = lastFeaturedMap.get(slot.sandwich_id);
                       return (
-                        <div key={slot.sandwich_id} className="text-center">
+                        <div
+                          key={slot.sandwich_id}
+                          className="flex items-center gap-2.5 rounded-lg border border-stone-100 p-1.5 dark:border-stone-800"
+                        >
                           <div
-                            className="relative mb-1 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800"
-                            style={{ aspectRatio: "1" }}
+                            className="relative shrink-0 overflow-hidden rounded-md bg-stone-100 dark:bg-stone-800"
+                            style={{ width: 36, height: 36 }}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -152,17 +205,41 @@ export default async function AdminReviewPage({
                               style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                             />
                             {slot.is_new_release && (
-                              <span className="absolute left-1 top-1 rounded bg-orange-500 px-1 text-[10px] font-bold text-white">
+                              <span className="absolute left-0 top-0 rounded-br bg-orange-500 px-1 text-[8px] font-bold text-white">
                                 NEW
                               </span>
                             )}
                           </div>
-                          <p className="truncate text-xs text-stone-600 dark:text-stone-300">{sandwich.title}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-stone-700 dark:text-stone-300">
+                              {sandwich.title}
+                            </p>
+                            <p className="truncate text-xs text-stone-400">
+                              {sandwich.bite_count} bites · by {uploaderName} · uploaded {formatShortTimestamp(sandwich.created_at)} · last featured {lastFeatured ? formatShortDate(lastFeatured) : "never"}
+                            </p>
+                          </div>
                           {!isToday && !slot.is_new_release && (
-                            <form action={removeRepeatSlot.bind(null, day, slot.sandwich_id)}>
+                            <form
+                              action={swapRepeatSlot.bind(null, day, slot.sandwich_id)}
+                              className="flex shrink-0 items-center gap-1"
+                            >
+                              <select
+                                name="newSandwichId"
+                                defaultValue=""
+                                className="rounded border border-stone-200 bg-white px-1 py-1 text-xs dark:border-stone-700 dark:bg-stone-800"
+                              >
+                                <option value="" disabled>
+                                  Swap for…
+                                </option>
+                                {candidateOptions.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.title} ({c.bite_count})
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 type="submit"
-                                className="mt-0.5 text-[10px] text-stone-400 underline hover:text-stone-600 dark:hover:text-stone-300"
+                                className="rounded border border-stone-200 px-2 py-1 text-xs text-stone-500 transition hover:bg-stone-50 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
                               >
                                 Swap
                               </button>
@@ -174,8 +251,8 @@ export default async function AdminReviewPage({
                     {Array.from({ length: Math.max(0, 5 - daySlots.length) }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
-                        className="rounded-lg border border-dashed border-stone-200 dark:border-stone-700"
-                        style={{ aspectRatio: "1" }}
+                        className="rounded-lg border border-dashed border-stone-200 p-1.5 text-xs text-stone-300 dark:border-stone-700 dark:text-stone-600"
+                        style={{ height: 44 }}
                       />
                     ))}
                   </div>

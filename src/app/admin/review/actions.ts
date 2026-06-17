@@ -76,23 +76,44 @@ export async function approveWithBounds(id: string, bounds: { x: number; y: numb
 }
 
 // Repeat-pool slots on future (not-yet-live) days can be swapped for a
-// different backlog sandwich; new-release slots and today's live day are
-// not editable here. Removing just opens the slot back up -- fillPipeline
-// immediately backfills it from the next-best backlog candidate.
-export async function removeRepeatSlot(date: string, sandwichId: string) {
-  if (date <= todayET()) return;
+// specific different backlog sandwich, picked by the admin; new-release
+// slots and today's live day are not editable here.
+export async function swapRepeatSlot(date: string, oldSandwichId: string, formData: FormData) {
+  const newSandwichId = formData.get("newSandwichId") as string;
+  if (!newSandwichId || date <= todayET()) return;
 
   const supabase = createAdminClient();
-  const { data: slot } = await supabase
+
+  const { data: oldSlot } = await supabase
     .from("daily_slots")
     .select("is_new_release")
     .eq("date", date)
-    .eq("sandwich_id", sandwichId)
+    .eq("sandwich_id", oldSandwichId)
     .maybeSingle();
-  if (!slot || slot.is_new_release) return;
+  if (!oldSlot || oldSlot.is_new_release) return;
 
-  await supabase.from("daily_slots").delete().eq("date", date).eq("sandwich_id", sandwichId);
-  await fillPipeline(supabase);
+  const { data: newSandwich } = await supabase
+    .from("sandwiches")
+    .select("uploaded_by")
+    .eq("id", newSandwichId)
+    .single();
+  if (!newSandwich) return;
+
+  // Guard against double-booking the new sandwich into the same day, or
+  // breaking the per-uploader-per-day cap.
+  const { data: daySlots } = await supabase
+    .from("daily_slots")
+    .select("sandwich_id, sandwiches(uploaded_by)")
+    .eq("date", date);
+  const conflict = ((daySlots ?? []) as unknown as { sandwich_id: string; sandwiches: { uploaded_by: string | null } | null }[]).some(
+    (s) =>
+      s.sandwich_id === newSandwichId ||
+      (!!newSandwich.uploaded_by && s.sandwiches?.uploaded_by === newSandwich.uploaded_by)
+  );
+  if (conflict) return;
+
+  await supabase.from("daily_slots").delete().eq("date", date).eq("sandwich_id", oldSandwichId);
+  await supabase.from("daily_slots").insert({ date, sandwich_id: newSandwichId, is_new_release: false });
   revalidatePath("/admin/review");
 }
 
