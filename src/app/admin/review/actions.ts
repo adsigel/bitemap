@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { emailHtml } from "@/lib/email-template";
 import { trackServer } from "@/lib/track-server";
-import { assignToSchedule, fillPipeline } from "@/lib/daily-set";
+import { assignToSchedule, fillPipeline, todayET } from "@/lib/daily-set";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -123,6 +123,27 @@ export async function toggleFeatured(id: string, featured: boolean) {
     }
   }
 
+  revalidatePath("/admin/review");
+}
+
+// Repeat-pool slots on future (not-yet-live) days can be swapped for a
+// different backlog sandwich; new-release slots and today's live day are
+// not editable here. Removing just opens the slot back up -- fillPipeline
+// immediately backfills it from the next-best backlog candidate.
+export async function removeRepeatSlot(date: string, sandwichId: string) {
+  if (date <= todayET()) return;
+
+  const supabase = createAdminClient();
+  const { data: slot } = await supabase
+    .from("daily_slots")
+    .select("is_new_release")
+    .eq("date", date)
+    .eq("sandwich_id", sandwichId)
+    .maybeSingle();
+  if (!slot || slot.is_new_release) return;
+
+  await supabase.from("daily_slots").delete().eq("date", date).eq("sandwich_id", sandwichId);
+  await fillPipeline(supabase);
   revalidatePath("/admin/review");
 }
 

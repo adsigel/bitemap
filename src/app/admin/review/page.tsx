@@ -1,16 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
-import { renameSandwich, unpublishSandwich, toggleFeatured } from "./actions";
+import { renameSandwich, unpublishSandwich, toggleFeatured, removeRepeatSlot } from "./actions";
 import { TimelapseExporter } from "@/components/TimelapseExporter";
 import { PrintHeatmapButton } from "@/components/PrintHeatmapButton";
 import { PolygonEditor } from "@/components/PolygonEditor";
 import { PendingCard } from "@/components/PendingCard";
+import { todayET, addDays, PIPELINE_DAYS } from "@/lib/daily-set";
 
 export const dynamic = "force-dynamic";
+
+function formatDayLabel(day: string, isToday: boolean): string {
+  const weekdayDate = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${day}T12:00:00Z`));
+  return isToday ? `Today — ${weekdayDate}` : weekdayDate;
+}
 
 export default async function AdminReviewPage() {
   const supabase = await createClient();
 
-  const [{ data: pending }, { data: approved }] = await Promise.all([
+  const today = todayET();
+  const pipelineDays = Array.from({ length: PIPELINE_DAYS }, (_, i) => addDays(today, i));
+
+  const [{ data: pending }, { data: approved }, { data: pipelineSlots }] = await Promise.all([
     supabase
       .from("sandwiches")
       .select("*")
@@ -21,7 +35,26 @@ export default async function AdminReviewPage() {
       .select("*")
       .eq("approved", true)
       .order("bite_count", { ascending: false }),
+    supabase
+      .from("daily_slots")
+      .select("date, sandwich_id, is_new_release")
+      .gte("date", today)
+      .lte("date", pipelineDays[pipelineDays.length - 1]),
   ]);
+
+  const slotSandwichIds = [...new Set((pipelineSlots ?? []).map((s) => s.sandwich_id))];
+  const { data: slotSandwiches } =
+    slotSandwichIds.length > 0
+      ? await supabase.from("sandwiches").select("id, title, image_url").in("id", slotSandwichIds)
+      : { data: [] };
+  const slotSandwichMap = new Map((slotSandwiches ?? []).map((s) => [s.id, s]));
+
+  const slotsByDay = new Map<string, { sandwich_id: string; is_new_release: boolean }[]>();
+  for (const row of pipelineSlots ?? []) {
+    const list = slotsByDay.get(row.date) ?? [];
+    list.push({ sandwich_id: row.sandwich_id, is_new_release: row.is_new_release });
+    slotsByDay.set(row.date, list);
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -46,6 +79,69 @@ export default async function AdminReviewPage() {
             }}
           />
         ))}
+      </div>
+
+      <h2 className="mb-4 mt-12 text-lg font-bold">Upcoming days</h2>
+      <div className="space-y-4">
+        {pipelineDays.map((day) => {
+          const isToday = day === today;
+          const daySlots = slotsByDay.get(day) ?? [];
+          return (
+            <div
+              key={day}
+              className="rounded-xl border border-stone-200 p-4 dark:border-stone-700"
+            >
+              <p className="mb-3 text-sm font-semibold text-stone-700 dark:text-stone-300">
+                {formatDayLabel(day, isToday)}
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                {daySlots.map((slot) => {
+                  const sandwich = slotSandwichMap.get(slot.sandwich_id);
+                  if (!sandwich) return null;
+                  return (
+                    <div key={slot.sandwich_id} className="text-center">
+                      <div
+                        className="relative mb-1 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800"
+                        style={{ aspectRatio: "1" }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={sandwich.image_url}
+                          alt={sandwich.title}
+                          className="object-cover"
+                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                        />
+                        {slot.is_new_release && (
+                          <span className="absolute left-1 top-1 rounded bg-orange-500 px-1 text-[10px] font-bold text-white">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-stone-600 dark:text-stone-300">{sandwich.title}</p>
+                      {!isToday && !slot.is_new_release && (
+                        <form action={removeRepeatSlot.bind(null, day, slot.sandwich_id)}>
+                          <button
+                            type="submit"
+                            className="mt-0.5 text-[10px] text-stone-400 underline hover:text-stone-600 dark:hover:text-stone-300"
+                          >
+                            Swap
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  );
+                })}
+                {Array.from({ length: Math.max(0, 5 - daySlots.length) }).map((_, i) => (
+                  <div
+                    key={`empty-${i}`}
+                    className="rounded-lg border border-dashed border-stone-200 dark:border-stone-700"
+                    style={{ aspectRatio: "1" }}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <h2 className="mb-4 mt-12 text-lg font-bold">Approved sandwiches</h2>
