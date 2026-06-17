@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DisplayNameEditor } from "@/components/DisplayNameEditor";
+import { AvatarEditor } from "@/components/AvatarEditor";
 import { ViewTracker } from "@/components/ViewTracker";
 import { SandwichCreatorCard } from "@/components/SandwichCreatorCard";
 import { ProfileTeaser } from "@/components/ProfileTeaser";
@@ -131,19 +131,7 @@ export default async function ProfilePage({
     <div className="mx-auto max-w-lg space-y-8">
       <ViewTracker event="Profile Viewed" />
       <div className="flex items-center gap-4">
-        {profile?.avatar_url ? (
-          <Image
-            src={profile.avatar_url}
-            alt={profile.display_name ?? ""}
-            width={64}
-            height={64}
-            className="h-16 w-16 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-600">
-            {profile?.display_name?.[0]?.toUpperCase() ?? "?"}
-          </div>
-        )}
+        <AvatarEditor userId={user.id} initialAvatarUrl={profile?.avatar_url ?? null} displayName={profile?.display_name ?? "?"} />
         <div className="min-w-0">
           <DisplayNameEditor userId={user.id} initialName={profile?.display_name ?? ""} />
           <p className="text-sm text-stone-500">Biter since {memberSince}</p>
