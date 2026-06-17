@@ -1,93 +1,84 @@
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { KillScreen, type RecommendedSandwich } from "@/components/KillScreen";
+import { DailyLeaderboard, type LeaderboardEntry } from "@/components/DailyLeaderboard";
 import { ViewTracker } from "@/components/ViewTracker";
-import { sendAllDoneEmailIfDue } from "@/lib/sandwich-actions";
+import { todayET, etDayBounds } from "@/lib/et-date";
 
 export const dynamic = "force-dynamic";
 
 export default async function AllDonePage() {
   const supabase = await createClient();
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get("bitemap_session_id")?.value;
+  const today = todayET();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (user) {
-    sendAllDoneEmailIfDue(user.id).catch(console.error);
+  const { data: slots } = await supabase.from("daily_slots").select("sandwich_id").eq("date", today);
+  const todaysIds = (slots ?? []).map((s) => s.sandwich_id);
+
+  if (todaysIds.length === 0) {
+    return (
+      <div className="py-24 text-center text-stone-400">
+        No sandwiches today. Check back soon.
+      </div>
+    );
   }
 
-  let recommended: RecommendedSandwich[] = [];
+  // Prefer the frozen end-of-day snapshot if rollover already ran for today
+  // (shouldn't normally happen mid-day, but defends against clock skew /
+  // a late page render right at the boundary). Otherwise count live.
+  const { data: snapshot } = await supabase
+    .from("daily_leaderboard_results")
+    .select("sandwich_id, bite_count, rank")
+    .eq("date", today);
 
-  const hasIdentity = user || sessionId;
-  if (hasIdentity) {
-    const bitesQuery = user
-      ? supabase
+  const { data: sandwiches } = await supabase
+    .from("sandwiches")
+    .select("id, title, image_url, slug, uploaded_by")
+    .in("id", todaysIds);
+
+  const sandwichById = new Map((sandwiches ?? []).map((s) => [s.id, s]));
+
+  let counts: { sandwich_id: string; bite_count: number }[];
+  const isFinal = (snapshot?.length ?? 0) > 0;
+
+  if (isFinal) {
+    counts = snapshot!.map((r) => ({ sandwich_id: r.sandwich_id, bite_count: r.bite_count }));
+  } else {
+    const { start, end } = etDayBounds(today);
+    counts = await Promise.all(
+      todaysIds.map(async (id) => {
+        const { count } = await supabase
           .from("bites")
-          .select("sandwich_id, created_at")
-          .or(
-            sessionId
-              ? `user_id.eq.${user.id},session_id.eq.${sessionId}`
-              : `user_id.eq.${user.id}`
-          )
-      : supabase
-          .from("bites")
-          .select("sandwich_id, created_at")
-          .eq("session_id", sessionId!);
-
-    const { data: userBites } = await bitesQuery;
-
-    if (userBites?.length) {
-      const bittenIds = userBites.map((b) => b.sandwich_id);
-      const userBiteMap = new Map(userBites.map((b) => [b.sandwich_id, b.created_at]));
-      const earliestBite = userBites.reduce(
-        (min, b) => (b.created_at < min ? b.created_at : min),
-        userBites[0].created_at
-      );
-
-      const [{ data: sandwichDetails }, { data: laterBites }] = await Promise.all([
-        supabase
-          .from("sandwiches_with_count")
-          .select("id, title, image_url, slug, bite_count")
-          .in("id", bittenIds)
-          .eq("approved", true),
-        supabase
-          .from("bites")
-          .select("sandwich_id, created_at")
-          .in("sandwich_id", bittenIds)
-          .gt("created_at", earliestBite),
-      ]);
-
-      // Count bites that arrived after the user's own bite on each sandwich
-      const newBiteCount = new Map<string, number>();
-      laterBites?.forEach((b) => {
-        const userBiteTime = userBiteMap.get(b.sandwich_id);
-        if (userBiteTime && b.created_at > userBiteTime) {
-          newBiteCount.set(b.sandwich_id, (newBiteCount.get(b.sandwich_id) ?? 0) + 1);
-        }
-      });
-
-      recommended = (sandwichDetails ?? [])
-        .sort((a, b) => {
-          const delta = (newBiteCount.get(b.id) ?? 0) - (newBiteCount.get(a.id) ?? 0);
-          if (delta !== 0) return delta;
-          return (b.bite_count ?? 0) - (a.bite_count ?? 0);
-        })
-        .slice(0, 6)
-        .map((s) => ({
-          id: s.id,
-          slug: s.slug ?? null,
-          title: s.title,
-          imageUrl: s.image_url,
-          newBites: newBiteCount.get(s.id) ?? 0,
-        }));
-    }
+          .select("*", { count: "exact", head: true })
+          .eq("sandwich_id", id)
+          .gte("created_at", start.toISOString())
+          .lt("created_at", end.toISOString());
+        return { sandwich_id: id, bite_count: count ?? 0 };
+      })
+    );
   }
+
+  counts.sort((a, b) => b.bite_count - a.bite_count);
+
+  const entries: LeaderboardEntry[] = counts
+    .map((c, i) => {
+      const sandwich = sandwichById.get(c.sandwich_id);
+      if (!sandwich) return null;
+      return {
+        id: sandwich.id,
+        slug: sandwich.slug ?? null,
+        title: sandwich.title,
+        imageUrl: sandwich.image_url,
+        biteCount: c.bite_count,
+        rank: i + 1,
+        isOwn: !!user && sandwich.uploaded_by === user.id,
+      };
+    })
+    .filter((e): e is LeaderboardEntry => e !== null);
 
   return (
     <>
-      <ViewTracker event="All Done Viewed" />
-      <KillScreen recommended={recommended} />
+      <ViewTracker event="Daily Leaderboard Viewed" />
+      <DailyLeaderboard entries={entries} isFinal={isFinal} />
     </>
   );
 }
