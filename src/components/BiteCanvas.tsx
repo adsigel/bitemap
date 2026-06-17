@@ -16,7 +16,6 @@ import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
 import { pickNextSandwichId, pickNextBacklogSandwichId } from "@/lib/pick-next-sandwich";
 import { formatCount } from "@/lib/format";
 import { exportHeatmapSnapshot } from "@/lib/export-heatmap";
-import { DonationLink } from "@/components/DonationLink";
 
 export interface BiterAvatar {
   avatarUrl: string | null;
@@ -39,6 +38,7 @@ interface Props {
   creatorNote?: string | null;
   isAdmin?: boolean;
   mode?: "daily" | "explore";
+  isLastOfToday?: boolean;
 }
 
 type State =
@@ -49,7 +49,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily" }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily", isLastOfToday }: Props) {
   const router = useRouter();
   const pickNext = useCallback(
     (currentId: string, supabase: ReturnType<typeof createClient>, userId: string | null) =>
@@ -72,7 +72,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
   const [isDownloading, setIsDownloading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
-  const [showNudge, setShowNudge] = useState(false);
   const [showOobMessage, setShowOobMessage] = useState(false);
   const supabase = createClient();
 
@@ -173,13 +172,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
     checkBiteMilestones(sandwichId).catch(console.error);
 
-    if (!userId) {
-      const countKey = "bitemap_anon_bite_count";
-      const count = parseInt(localStorage.getItem(countKey) ?? "0", 10) + 1;
-      localStorage.setItem(countKey, String(count));
-      if (count >= 5) setShowNudge(true);
-    }
-
     const updatedBites = [...allBites, point];
     const cluster = getClusterCopy(point, updatedBites, title);
     setAllBites(updatedBites);
@@ -271,13 +263,16 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       ? (state as { point: Point }).point
       : null;
 
+  const nextButtonText =
+    mode === "daily" ? (isLastOfToday ? "See today's results →" : "Keep Biting") : "Next sandwich →";
+
   const NextButton = ({ className }: { className?: string }) => (
     <button
       onClick={handleNext}
       disabled={navigating}
-      className={`rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 ${className ?? "block w-full"}`}
+      className={`rounded-lg bg-orange-500 px-4 py-2.5 text-center font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50 ${className ?? "block w-full"}`}
     >
-      {navigating ? "Loading…" : "Next sandwich →"}
+      {navigating ? "Loading…" : nextButtonText}
     </button>
   );
 
@@ -335,9 +330,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         )}
 
         {state.phase === "idle" && !showOobMessage && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-8">
-            <p className="text-center text-sm font-semibold text-white">
-              Tap where you&apos;d take your next bite
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-5 pt-10">
+            <p className="text-center text-base font-bold text-white">
+              👆 Tap where you&apos;d take your next bite
             </p>
             <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-white/50" />
           </div>
@@ -411,9 +406,9 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
         <button
           onClick={handleSkip}
           disabled={navigating}
-          className="block w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-center font-medium text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+          className="block w-full text-center text-sm text-stone-400 underline-offset-2 transition hover:text-stone-600 hover:underline disabled:opacity-50 dark:text-stone-500 dark:hover:text-stone-300"
         >
-          {navigating ? "Loading…" : "I wouldn't bite"}
+          {navigating ? "Loading…" : "I wouldn't bite this one"}
         </button>
       )}
 
@@ -472,36 +467,17 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                 )}
               </>
             )}
-          </div>
-          {showNudge && !userId && (
-            <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-3 text-center dark:border-orange-900/40 dark:bg-orange-950/40">
-              <p className="text-sm font-medium text-stone-700 dark:text-stone-200">You&apos;re on a roll! Save your bite history.</p>
-              <a
-                href="/sign-in"
-                className="mt-2 inline-block rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-              >
-                Create a free account
-              </a>
-              <p className="mt-3">
-                <DonationLink
-                  source="post-bite"
-                  className="text-xs text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
-                >
-                  Support Bitemap ☕
-                </DonationLink>
-              </p>
-            </div>
-          )}
-          <div className="flex gap-2">
             {!submitted && (
               <button
                 onClick={handleShare}
                 disabled={isSharing}
-                className="flex-1 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+                className="mt-3 block w-full text-center text-sm font-medium text-orange-600 underline-offset-2 transition hover:underline disabled:opacity-50 dark:text-orange-400"
               >
-                {isSharing ? "Preparing…" : "Share my bite"}
+                {isSharing ? "Preparing…" : "Share this →"}
               </button>
             )}
+          </div>
+          <div className="flex gap-2">
             {isAdmin && (
               <button
                 onClick={handleDownload}
@@ -515,34 +491,36 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                 </svg>
               </button>
             )}
-            <NextButton className={!submitted ? "flex-1" : "w-full"} />
+            <NextButton className="flex-1" />
           </div>
         </div>
       )}
 
       {state.phase === "already_bitten" && (
-        <div className="flex gap-2">
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            {isAdmin && (
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                title="Save heatmap image"
+                aria-label="Save heatmap image"
+                className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </button>
+            )}
+            <NextButton className="flex-1" />
+          </div>
           <button
             onClick={handleShare}
             disabled={isSharing}
-            className="flex-1 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+            className="block w-full text-center text-sm text-stone-400 underline-offset-2 transition hover:text-stone-600 hover:underline disabled:opacity-50 dark:text-stone-500 dark:hover:text-stone-300"
           >
-            {isSharing ? "Preparing…" : "Share my bite"}
+            {isSharing ? "Preparing…" : "Share this →"}
           </button>
-          {isAdmin && (
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              title="Save heatmap image"
-              aria-label="Save heatmap image"
-              className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-            </button>
-          )}
-          <NextButton className="flex-1" />
         </div>
       )}
     </div>

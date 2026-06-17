@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BiteCanvas, type BiterAvatar } from "@/components/BiteCanvas";
 import { ViewTracker } from "@/components/ViewTracker";
 import { VisitButton } from "@/components/VisitButton";
+import { todayET } from "@/lib/et-date";
 
 export async function generateMetadata({
   params,
@@ -155,9 +156,61 @@ export default async function SandwichPage({
     })
     .slice(0, 3);
 
+  // Daily progress (Today's Sandos indicator + Keep Biting / See results copy)
+  // only applies in daily mode, and only when this sandwich is actually in
+  // today's set (it always should be when mode=daily, but a stale link or
+  // a rollover mid-render could land here with it already rotated out).
+  let dailyProgress: { completedBeforeThis: number; total: number } | null = null;
+  if (mode !== "explore") {
+    const today = todayET();
+    const { data: todaysSlots } = await supabase.from("daily_slots").select("sandwich_id").eq("date", today);
+    const todaysIds = (todaysSlots ?? []).map((s) => s.sandwich_id);
+    if (todaysIds.includes(sandwich.id)) {
+      const otherIds = todaysIds.filter((sid) => sid !== sandwich.id);
+      let completedBeforeThis = 0;
+      if (otherIds.length > 0) {
+        const bitesQuery = user
+          ? supabase
+              .from("bites")
+              .select("*", { count: "exact", head: true })
+              .in("sandwich_id", otherIds)
+              .or(sessionId ? `user_id.eq.${user.id},session_id.eq.${sessionId}` : `user_id.eq.${user.id}`)
+          : sessionId
+          ? supabase.from("bites").select("*", { count: "exact", head: true }).in("sandwich_id", otherIds).eq("session_id", sessionId)
+          : null;
+        const { count } = bitesQuery ? await bitesQuery : { count: 0 };
+        completedBeforeThis = count ?? 0;
+      }
+      dailyProgress = { completedBeforeThis, total: todaysIds.length };
+    }
+  }
+  const isLastOfToday = !!dailyProgress && dailyProgress.completedBeforeThis + 1 >= dailyProgress.total;
+
   return (
     <div className="mx-auto max-w-2xl">
       <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, ...(ref ? { referred_by: ref } : {}) }} />
+      {dailyProgress && (
+        <div className="mb-3 flex items-center gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Today&apos;s Sandos</p>
+          <div className="flex gap-1.5">
+            {Array.from({ length: dailyProgress.total }).map((_, i) => {
+              const completed = dailyProgress!.completedBeforeThis;
+              return (
+                <span
+                  key={i}
+                  className={`h-1.5 w-6 rounded-full ${
+                    i < completed
+                      ? "bg-orange-500"
+                      : i === completed
+                      ? "bg-orange-200 dark:bg-orange-900"
+                      : "bg-stone-200 dark:bg-stone-700"
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="mb-3 flex items-center gap-2">
         <h1 className="text-xl font-bold">{sandwich.title}</h1>
         {creatorFeatures && sandwich.creator_url && (
@@ -192,6 +245,7 @@ export default async function SandwichPage({
         creatorNote={creatorFeatures ? (sandwich.creator_note ?? null) : null}
         isAdmin={isAdmin}
         mode={mode === "explore" ? "explore" : "daily"}
+        isLastOfToday={isLastOfToday}
       />
     </div>
   );
