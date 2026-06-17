@@ -12,6 +12,7 @@ interface Sandwich {
   image_url: string;
   bite_bounds: Point[] | null;
   created_at: string;
+  uploaderName: string;
 }
 
 export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
@@ -49,7 +50,7 @@ export function PendingCard({ sandwich }: { sandwich: Sandwich }) {
           <p className="text-sm text-stone-500 dark:text-stone-400">{sandwich.description}</p>
         )}
         <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
-          Submitted {new Date(sandwich.created_at).toLocaleString()}
+          Submitted by {sandwich.uploaderName} — {new Date(sandwich.created_at).toLocaleString()}
         </p>
         <div className="mt-4 flex gap-3">
           <button

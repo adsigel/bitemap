@@ -265,7 +265,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       : null;
 
   const nextButtonText =
-    mode === "daily" ? (isLastOfToday ? "See today's results →" : "Keep Biting") : "Next sandwich →";
+    mode === "daily" ? (isLastOfToday ? "See today's results →" : "Keep biting") : "Next sandwich →";
 
   const NextButton = ({ className }: { className?: string }) => (
     <button
@@ -426,6 +426,22 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       {state.phase === "done" && (
         <div className="space-y-3">
+          <div className="flex gap-2">
+            {isAdmin && (
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                title="Save heatmap image"
+                aria-label="Save heatmap image"
+                className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </button>
+            )}
+            <NextButton className="flex-1" />
+          </div>
           <div className="rounded-xl border border-orange-100 bg-orange-100 px-4 py-4 text-center dark:border-orange-900 dark:bg-orange-950">
             {submitted ? (
               <>
@@ -470,22 +486,6 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                 {isSharing ? "Preparing…" : "Share this →"}
               </button>
             )}
-          </div>
-          <div className="flex gap-2">
-            {isAdmin && (
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                title="Save heatmap image"
-                aria-label="Save heatmap image"
-                className="rounded-lg border border-stone-200 bg-white px-3 text-stone-500 transition hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-              </button>
-            )}
-            <NextButton className="flex-1" />
           </div>
         </div>
       )}

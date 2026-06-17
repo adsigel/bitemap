@@ -71,6 +71,13 @@ export default async function AdminReviewPage({
       .lte("date", pipelineDays[pipelineDays.length - 1]),
   ]);
 
+  const pendingUploaderIds = [...new Set((pending ?? []).map((s) => s.uploaded_by).filter((id): id is string => !!id))];
+  const { data: pendingUploaderProfiles } =
+    pendingUploaderIds.length > 0
+      ? await supabase.from("profiles").select("id, display_name").in("id", pendingUploaderIds)
+      : { data: [] };
+  const pendingUploaderNameMap = new Map((pendingUploaderProfiles ?? []).map((p) => [p.id, p.display_name]));
+
   const slotSandwichIds = [...new Set((pipelineSlots ?? []).map((s) => s.sandwich_id))];
 
   const [
@@ -194,6 +201,7 @@ export default async function AdminReviewPage({
                   image_url: sandwich.image_url,
                   bite_bounds: sandwich.bite_bounds as { x: number; y: number }[] | null,
                   created_at: sandwich.created_at,
+                  uploaderName: sandwich.uploaded_by ? pendingUploaderNameMap.get(sandwich.uploaded_by) ?? "Unknown" : "Admin",
                 }}
               />
             ))}

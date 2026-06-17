@@ -98,7 +98,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
           <p className="text-6xl">🏆</p>
           <h1 className="text-2xl font-bold">You bit all 5 of today&apos;s sandos</h1>
           <p className="text-stone-500 dark:text-stone-400">
-            {isFinal ? "Here's how today's lineup ended up." : "Here's how today's lineup stands so far."}
+            {isFinal ? "Here's how today's lineup ended up." : "Here's how today's lineup stands."}
           </p>
         </div>
 

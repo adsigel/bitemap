@@ -35,7 +35,7 @@ export async function Header() {
           source="header"
           className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600"
         >
-          Add a Sando
+          Add a sando
         </AddSandoLink>
         <AvatarLink displayName={displayName} avatarUrl={avatarUrl} />
       </div>
