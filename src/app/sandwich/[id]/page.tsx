@@ -53,10 +53,10 @@ export default async function SandwichPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; share?: string; ref?: string }>;
+  searchParams: Promise<{ submitted?: string; share?: string; ref?: string; mode?: string }>;
 }) {
   const { id } = await params;
-  const { submitted, share, ref } = await searchParams;
+  const { submitted, share, ref, mode } = await searchParams;
   const supabase = await createClient();
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -200,6 +200,7 @@ export default async function SandwichPage({
         existingBite={existingBite}
         creatorNote={creatorFeatures ? (sandwich.creator_note ?? null) : null}
         isAdmin={isAdmin}
+        mode={mode === "explore" ? "explore" : "daily"}
       />
     </div>
   );

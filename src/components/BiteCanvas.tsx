@@ -13,7 +13,7 @@ import { drawHeatmap } from "@/lib/draw-heatmap";
 import { pointInPolygon } from "@/lib/geometry";
 import { computePercentile, outlierLabel } from "@/lib/percentile";
 import { getClusterCopy, type ClusterCopy } from "@/lib/cluster";
-import { pickNextSandwichId } from "@/lib/pick-next-sandwich";
+import { pickNextSandwichId, pickNextBacklogSandwichId } from "@/lib/pick-next-sandwich";
 import { formatCount } from "@/lib/format";
 import { exportHeatmapSnapshot } from "@/lib/export-heatmap";
 import { DonationLink } from "@/components/DonationLink";
@@ -40,6 +40,7 @@ interface Props {
   existingBite?: { x: number; y: number } | null;
   creatorNote?: string | null;
   isAdmin?: boolean;
+  mode?: "daily" | "explore";
 }
 
 type State =
@@ -50,8 +51,17 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], isHot, featured, autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily" }: Props) {
   const router = useRouter();
+  const pickNext = useCallback(
+    (currentId: string, supabase: ReturnType<typeof createClient>, userId: string | null) =>
+      mode === "explore"
+        ? pickNextBacklogSandwichId(currentId, supabase, userId)
+        : pickNextSandwichId(currentId, supabase, userId),
+    [mode]
+  );
+  const exhaustedRoute = mode === "explore" ? "/explore" : "/all-done";
+  const nextSuffix = mode === "explore" ? "?mode=explore" : "";
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<HTMLCanvasElement>(null);
   const nextIdRef = useRef<string | null>(null);
@@ -80,7 +90,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
     if (existingBite) {
       // Server already confirmed the bite — skip the DB check, just prefetch next
-      pickNextSandwichId(sandwichId, supabase, userId).then((id) => {
+      pickNext(sandwichId, supabase, userId).then((id) => {
         nextIdRef.current = id;
       });
       return;
@@ -94,12 +104,12 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     query.then(({ data }) => {
       if (data) {
         setState({ phase: "already_bitten", point: { x: data.x, y: data.y } });
-        pickNextSandwichId(sandwichId, supabase, userId).then((id) => {
+        pickNext(sandwichId, supabase, userId).then((id) => {
           nextIdRef.current = id;
         });
       }
     });
-  }, [sandwichId, userId, userLoaded, existingBite]);
+  }, [sandwichId, userId, userLoaded, existingBite, pickNext]);
 
   useEffect(() => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
@@ -142,7 +152,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     const sessionId = getOrCreateSessionId();
 
     // Kick off next-sandwich lookup in parallel with the bite insert
-    const nextIdPromise = pickNextSandwichId(sandwichId, supabase, userId);
+    const nextIdPromise = pickNext(sandwichId, supabase, userId);
 
     const percentile = computePercentile(point, allBites);
 
@@ -177,28 +187,28 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     setAllBites(updatedBites);
     setState({ phase: "done", point, percentile, totalBites: allBites.length, cluster });
     track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, ...(inboundRef ? { referred_by: inboundRef } : {}) });
-  }, [state, allBites, sandwichId, supabase, userId]);
+  }, [state, allBites, sandwichId, supabase, userId, pickNext]);
 
   const handleNext = useCallback(async () => {
     setNavigating(true);
-    const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
+    const id = nextIdRef.current ?? (await pickNext(sandwichId, supabase, userId));
     if (id) {
-      router.replace(`/sandwich/${id}`);
+      router.replace(`/sandwich/${id}${nextSuffix}`);
     } else {
-      router.replace("/all-done");
+      router.replace(exhaustedRoute);
     }
-  }, [sandwichId, supabase, router, userId]);
+  }, [sandwichId, supabase, router, userId, pickNext, nextSuffix, exhaustedRoute]);
 
   const handleSkip = useCallback(async () => {
     await track("Sandwich Skipped", { sandwich_id: sandwichId });
     setNavigating(true);
-    const id = nextIdRef.current ?? (await pickNextSandwichId(sandwichId, supabase, userId));
+    const id = nextIdRef.current ?? (await pickNext(sandwichId, supabase, userId));
     if (id) {
-      router.push(`/sandwich/${id}`);
+      router.push(`/sandwich/${id}${nextSuffix}`);
     } else {
-      router.push("/all-done");
+      router.push(exhaustedRoute);
     }
-  }, [sandwichId, supabase, router, userId]);
+  }, [sandwichId, supabase, router, userId, pickNext, nextSuffix, exhaustedRoute]);
 
   const handleShare = useCallback(async () => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
