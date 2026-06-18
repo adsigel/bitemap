@@ -22,7 +22,7 @@ export async function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
+    <header className="sticky top-0 z-50 transform-gpu border-b border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <HomeLink />
