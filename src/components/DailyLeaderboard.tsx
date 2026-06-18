@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { AddSandoLink } from "@/components/AddSandoLink";
-import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
+import { SafeAvatarImage } from "@/components/SafeAvatarImage";
 import { track } from "@/lib/track";
 
 const EMOJIS = ["🥪", "🥪", "🥪", "🥙", "🌯", "🫓", "🍞"];
@@ -33,25 +32,6 @@ interface Props {
   entries: LeaderboardEntry[];
   isFinal: boolean;
   isAuthed: boolean;
-}
-
-// Google avatar URLs occasionally fail when hotlinked directly by the
-// browser (intermittent rate-limiting on lh3.googleusercontent.com).
-// next/image fetches server-side instead, same as the header avatar which
-// doesn't have this problem; onError still falls back just in case.
-function UploaderAvatar({ url, name }: { url: string | null; name: string }) {
-  const [errored, setErrored] = useState(false);
-  if (!url || errored) return <GenericAvatarIcon iconClassName="h-3.5 w-3.5" />;
-  return (
-    <Image
-      src={url}
-      alt={name}
-      width={22}
-      height={22}
-      className="h-full w-full object-cover"
-      onError={() => setErrored(true)}
-    />
-  );
 }
 
 export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
@@ -139,7 +119,12 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <div className="h-5 w-5 shrink-0 overflow-hidden rounded-full">
-                        <UploaderAvatar url={e.uploaderAvatarUrl} name={e.uploaderName ?? "Admin"} />
+                        <SafeAvatarImage
+                          url={e.uploaderAvatarUrl}
+                          alt={e.uploaderName ?? "Admin"}
+                          size={22}
+                          fallbackIconClassName="h-3.5 w-3.5"
+                        />
                       </div>
                       <span className="text-sm text-stone-400">
                         {e.uploaderName ?? "Admin"} {isTop && "🏆"}

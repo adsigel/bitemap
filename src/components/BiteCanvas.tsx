@@ -17,6 +17,7 @@ import { pickNextSandwichId, pickNextBacklogSandwichId } from "@/lib/pick-next-s
 import { formatCount } from "@/lib/format";
 import { exportHeatmapSnapshot } from "@/lib/export-heatmap";
 import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
+import { SafeAvatarImage } from "@/components/SafeAvatarImage";
 
 export interface BiterAvatar {
   avatarUrl: string | null;
@@ -373,8 +374,12 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
                   style={{ zIndex: biters.length - i, marginLeft: i === 0 ? 0 : -8 }}
                 >
                   {b.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.avatarUrl} alt="" className="h-full w-full object-cover" />
+                    <SafeAvatarImage
+                      url={b.avatarUrl}
+                      alt=""
+                      size={24}
+                      fallbackBackground={['#d6d3d1', '#a8a29e', '#78716c'][i % 3]}
+                    />
                   ) : b.initial ? (
                     <div className="flex h-full w-full items-center justify-center bg-stone-300 text-[9px] font-bold text-stone-600">
                       {b.initial}
