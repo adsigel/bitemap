@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Point } from "@/lib/types";
 import { drawHeatmap } from "@/lib/draw-heatmap";
+import { track } from "@/lib/track";
 
 interface Props {
   sandwichId: string;
@@ -116,6 +117,7 @@ export function TimelapseExporter({ sandwichId, title, imageUrl, biteCount }: Pr
       a.download = `${title.toLowerCase().replace(/\s+/g, "-")}-timelapse.webm`;
       a.click();
       URL.revokeObjectURL(url);
+      track("Timelapse Exported", { sandwich_id: sandwichId, bite_count: biteCount, source: "admin_review" });
       setStatus(null);
     } finally {
       setExporting(false);

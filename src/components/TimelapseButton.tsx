@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@/lib/track";
 
 interface Props {
   sandwichId: string;
@@ -117,6 +118,7 @@ export function TimelapseButton({ sandwichId, title, imageUrl, biteCount, classN
       a.download = `${title.toLowerCase().replace(/\s+/g, "-")}-timelapse.webm`;
       a.click();
       URL.revokeObjectURL(url);
+      track("Timelapse Exported", { sandwich_id: sandwichId, bite_count: biteCount, source: "creator_card" });
     } finally {
       setStatus(null);
     }

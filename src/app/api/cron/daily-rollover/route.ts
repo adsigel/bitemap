@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rolloverDay, fillPipeline, scheduleOrphanedApprovals, todayET, addDays, etDayBounds } from "@/lib/daily-set";
-import { getUploaderEmail, getMarketingEmailRecipient, sendScheduledEmail } from "@/lib/sandwich-actions";
+import { getUploaderEmail, getMarketingEmailRecipient } from "@/lib/sandwich-actions";
 import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -162,11 +162,24 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
 
   // Self-heal: catch any approval that committed `approved = true` but
-  // never finished scheduling (e.g. an interrupted request), and send the
-  // "scheduled" email it missed.
+  // never finished scheduling (e.g. an interrupted request). Fixes the
+  // data immediately, but deliberately does NOT email the uploaders --
+  // a backlog of these could otherwise turn into a surprise bulk-send to
+  // people who uploaded a while ago. Alert admin instead so a human
+  // decides whether/how to follow up.
   const fixedOrphans = await scheduleOrphanedApprovals(supabase);
-  for (const orphan of fixedOrphans) {
-    await sendScheduledEmail(supabase, orphan, orphan.scheduledFor);
+  if (fixedOrphans.length > 0) {
+    const summary = fixedOrphans
+      .map((o) => `- "${o.title}" -> ${o.scheduledFor} (uploaded_by: ${o.uploaded_by ?? "admin"})`)
+      .join("\n");
+    const { error } = await resend.emails.send({
+      from: "Bitemap <hello@bitemap.food>",
+      to: "hello@bitemap.food",
+      subject: `⚠️ ${fixedOrphans.length} sandwich${fixedOrphans.length === 1 ? "" : "es"} self-healed from stuck approval`,
+      text: `These were approved but never finished scheduling, likely from an interrupted request. The rollover cron just fixed the scheduling, but deliberately didn't email the uploaders -- you may want to reach out manually if any of these are real users, not test data.\n\n${summary}`,
+      tags: [{ name: "notification", value: "orphan_self_heal_alert" }],
+    });
+    if (error) console.error("Resend error:", error);
   }
 
   const dayToClose = addDays(todayET(), -1);
