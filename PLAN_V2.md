@@ -155,6 +155,21 @@ A user who is both an uploader-in-today's-set and a biter of today's set gets on
 
 ---
 
+## Amplitude Tracking (changes from v1 table)
+
+| Event | Change |
+|---|---|
+| `Sandwich Viewed`, `Bite Taken` | New `mode` property: `"daily"` or `"explore"` — reuses the same internal terminology as the `mode` prop already threaded through `BiteCanvas`/`pick-next-sandwich.ts`, rather than inventing a separate term for "the default `/` path." |
+| `Daily Leaderboard Viewed` | Unchanged name, still fires on the `/all-done` payoff screen (today's 5, in-progress or just-completed). |
+| `Leaderboard Viewed` | New — fires on the `/leaderboard` aggregate page (yesterday/this week/last week). Deliberately a different event name from the one above since they're different surfaces. |
+| `Explore Clicked` | New — fires on both the primary (authed) and secondary (anon) "Explore older sandos" links on the Daily Leaderboard, `source: "daily_leaderboard"`. |
+| `Sign Up Clicked` | New — fires on the anon-only "Create a free account" CTA on the Daily Leaderboard, `source: "daily_leaderboard"`. |
+| `Add Sando Clicked` | Unchanged event; `source` type narrowed to drop the now-unused `"all_done"` value (replaced by `"daily_leaderboard"` when `/all-done` became the Daily Leaderboard). |
+| `Donation Clicked` | `source` type narrowed to just `"footer"` — the `"post-bite"` source was only used by the anon bite-count nudge removed from `BiteCanvas`. |
+| `User Notified` / `notification: "All Sandwiches Bitten"` | **Removed**, along with the now-dead `sendAllDoneEmailIfDue()` function it lived in — orphaned once `/all-done` became the Daily Leaderboard (superseded by the rollover cron's recap emails). `profiles.last_all_done_email_at` is now an unused column; not dropped yet, same deferred-cleanup treatment as `featured`/`hot`. |
+
+---
+
 ## Open Questions / Backlog for Next Pass
 
 - Pipeline depth (starting at 4 days) is a tuning knob — deeper pipeline means more advance notice for uploaders but more admin surface to manage and more days "locked in" before reacting to e.g. a great submission that should jump the queue. Revisit once there's real submission volume data.
