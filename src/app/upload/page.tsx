@@ -7,6 +7,7 @@ import type { Area } from "react-easy-crop";
 import { getSignedUploadUrl, saveSandwich } from "@/lib/sandwich-actions";
 import { createClient } from "@/lib/supabase/client";
 import { track } from "@/lib/track";
+import { getStoredReferralToken } from "@/lib/referral-cookie";
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const SUPPORTED_EXTENSIONS = /\.(jpe?g|png|heic|heif|webp)$/i;
@@ -198,7 +199,12 @@ export default function UploadPage() {
       uploadedBy: currentUserId,
     });
 
-    const baseProps = { title, ...(currentUserId ? { user_id: currentUserId } : {}) };
+    const refToken = getStoredReferralToken();
+    const baseProps = {
+      title,
+      ...(currentUserId ? { user_id: currentUserId } : {}),
+      ...(refToken ? { referred_by: refToken } : {}),
+    };
 
     if (saveError === "duplicate" || saveError === "not_a_sandwich") {
       await track("Sandwich Uploaded", { ...baseProps, status: "rejected", failure_reason: saveError });

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Fustat } from "next/font/google";
 import { AmplitudeProvider } from "@/components/AmplitudeProvider";
 import { AccountCreatedTracker } from "@/components/AccountCreatedTracker";
+import { ReferralCookieSetter } from "@/components/ReferralCookieSetter";
 import { Header } from "@/components/Header";
 import { DonationLink } from "@/components/DonationLink";
 import "./globals.css";
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className={`${fustat.className} flex min-h-screen flex-col bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100`}>
         <AmplitudeProvider apiKey={process.env.AMPLITUDE_API_KEY!}>
         <Suspense fallback={null}><AccountCreatedTracker /></Suspense>
+        <Suspense fallback={null}><ReferralCookieSetter /></Suspense>
         <Header />
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
           {children}
