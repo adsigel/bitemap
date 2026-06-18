@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { rolloverDay, fillPipeline, todayET, addDays, etDayBounds } from "@/lib/daily-set";
-import { getUploaderEmail, getMarketingEmailRecipient } from "@/lib/sandwich-actions";
+import { rolloverDay, fillPipeline, scheduleOrphanedApprovals, todayET, addDays, etDayBounds } from "@/lib/daily-set";
+import { getUploaderEmail, getMarketingEmailRecipient, sendScheduledEmail } from "@/lib/sandwich-actions";
 import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -160,6 +160,15 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  // Self-heal: catch any approval that committed `approved = true` but
+  // never finished scheduling (e.g. an interrupted request), and send the
+  // "scheduled" email it missed.
+  const fixedOrphans = await scheduleOrphanedApprovals(supabase);
+  for (const orphan of fixedOrphans) {
+    await sendScheduledEmail(supabase, orphan, orphan.scheduledFor);
+  }
+
   const dayToClose = addDays(todayET(), -1);
 
   const { data: existingSnapshot } = await supabase
@@ -178,5 +187,5 @@ export async function GET(request: NextRequest) {
   await sendLiveEmails(supabase, newToday);
   await fillPipeline(supabase);
 
-  return NextResponse.json({ closedDay, newToday });
+  return NextResponse.json({ closedDay, newToday, fixedOrphans: fixedOrphans.map((o) => o.id) });
 }

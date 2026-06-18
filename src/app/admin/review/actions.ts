@@ -4,8 +4,8 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { emailHtml } from "@/lib/email-template";
-import { assignToSchedule, fillPipeline, todayET, formatDateET } from "@/lib/daily-set";
+import { assignToSchedule, fillPipeline, todayET } from "@/lib/daily-set";
+import { sendScheduledEmail } from "@/lib/sandwich-actions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -31,33 +31,14 @@ export async function approveSandwich(id: string) {
   // Approval no longer means "live" -- it means "eligible to be scheduled."
   // assignToSchedule places it in the next pipeline day with an open slot
   // (respecting the per-uploader-per-day cap), then fillPipeline tops up
-  // any other pipeline days that are short on repeat-pool sandwiches.
+  // any other pipeline days that are short on repeat-pool sandwiches. If
+  // this gets interrupted before completing, the cron's
+  // scheduleOrphanedApprovals sweep catches it on the next run.
   const scheduledFor = await assignToSchedule(supabase, id);
   await fillPipeline(supabase);
 
-  if (sandwich?.uploaded_by) {
-    const { data: authData } = await supabase.auth.admin.getUserById(sandwich.uploaded_by);
-    const email = authData?.user?.email;
-    if (email) {
-      const sandwichUrl = `https://bitemap.food/sandwich/${sandwich.slug ?? id}`;
-      const dateLabel = formatDateET(scheduledFor);
-      const { error: emailError } = await resend.emails.send({
-        from: "Adam @ Bitemap <hello@bitemap.food>",
-        to: email,
-        subject: `Your sandwich is scheduled for ${dateLabel} 🥪`,
-        html: emailHtml({
-          intro: `<strong>${sandwich.title}</strong> passed review and is scheduled to go live on <strong>${dateLabel}</strong>. We'll email you again the moment it's live.`,
-          ctaText: "See who's biting",
-          ctaUrl: sandwichUrl,
-        }),
-        text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${sandwichUrl}`,
-        tags: [
-          { name: "notification", value: "scheduled" },
-          { name: "user_id", value: sandwich.uploaded_by },
-        ],
-      });
-      if (emailError) console.error("Resend error:", emailError);
-    }
+  if (sandwich) {
+    await sendScheduledEmail(supabase, { id, title: sandwich.title, slug: sandwich.slug, uploaded_by: sandwich.uploaded_by }, scheduledFor);
   }
 
   revalidatePath("/admin/review");

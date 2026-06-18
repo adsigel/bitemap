@@ -55,6 +55,31 @@ export async function assignToSchedule(supabase: AdminClient, sandwichId: string
 }
 
 /**
+ * Catches sandwiches stuck `approved = true` with `scheduled_for` still
+ * null -- i.e. assignToSchedule started (approval committed) but never
+ * finished (e.g. the request was interrupted mid-flight; these writes
+ * aren't wrapped in a single transaction). Safe to call repeatedly; once
+ * a sandwich is scheduled it no longer matches the filter.
+ */
+export async function scheduleOrphanedApprovals(
+  supabase: AdminClient
+): Promise<{ id: string; title: string; slug: string | null; uploaded_by: string | null; scheduledFor: string }[]> {
+  const { data: orphans } = await supabase
+    .from("sandwiches")
+    .select("id, title, slug, uploaded_by")
+    .eq("approved", true)
+    .is("scheduled_for", null);
+  if (!orphans?.length) return [];
+
+  const fixed = [];
+  for (const orphan of orphans) {
+    const scheduledFor = await assignToSchedule(supabase, orphan.id);
+    fixed.push({ ...orphan, scheduledFor });
+  }
+  return fixed;
+}
+
+/**
  * Tops up every day in the pipeline window (today + PIPELINE_DAYS - 1) to
  * SLOTS_PER_DAY using backlog sandwiches (previously featured, not
  * currently slotted anywhere in the pipeline). Idempotent — safe to call

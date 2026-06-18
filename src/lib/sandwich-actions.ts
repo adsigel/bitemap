@@ -7,6 +7,7 @@ import { trackServer } from "@/lib/track-server";
 import { generateSlug } from "@/lib/slug";
 import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
 import { MIN_BITES_FOR_TIMELAPSE } from "@/lib/timelapse";
+import { formatDateET } from "@/lib/daily-set";
 
 const FIRST_SANDWICH_BITES_MILESTONE = 10;
 
@@ -137,6 +138,37 @@ export async function getMarketingEmailRecipient(supabase: ReturnType<typeof cre
     .maybeSingle();
   if (profile?.marketing_unsubscribed_at) return null;
   return getUploaderEmail(supabase, userId);
+}
+
+// Shared by approveSandwich and the cron's orphaned-approval self-heal
+// sweep, so both paths send the identical "scheduled" email.
+export async function sendScheduledEmail(
+  supabase: ReturnType<typeof createAdminClient>,
+  sandwich: { id: string; title: string; slug: string | null; uploaded_by: string | null },
+  scheduledFor: string
+) {
+  if (!sandwich.uploaded_by) return;
+  const email = await getUploaderEmail(supabase, sandwich.uploaded_by);
+  if (!email) return;
+
+  const sandwichUrl = `https://bitemap.food/sandwich/${sandwich.slug ?? sandwich.id}`;
+  const dateLabel = formatDateET(scheduledFor);
+  const { error } = await resend.emails.send({
+    from: "Adam @ Bitemap <hello@bitemap.food>",
+    to: email,
+    subject: `Your sandwich is scheduled for ${dateLabel} 🥪`,
+    html: emailHtml({
+      intro: `<strong>${sandwich.title}</strong> passed review and is scheduled to go live on <strong>${dateLabel}</strong>. We'll email you again the moment it's live.`,
+      ctaText: "See who's biting",
+      ctaUrl: sandwichUrl,
+    }),
+    text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${sandwichUrl}`,
+    tags: [
+      { name: "notification", value: "scheduled" },
+      { name: "user_id", value: sandwich.uploaded_by },
+    ],
+  });
+  if (error) console.error("Resend error:", error);
 }
 
 export async function checkBiteMilestones(sandwichId: string) {
