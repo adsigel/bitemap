@@ -188,7 +188,7 @@ export default async function SandwichPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, ...(ref ? { referred_by: ref } : {}) }} />
+      <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, mode: mode === "explore" ? "explore" : "daily", ...(ref ? { referred_by: ref } : {}) }} />
       {dailyProgress && (
         <div className="mb-3 flex items-center gap-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Today&apos;s Sandos</p>

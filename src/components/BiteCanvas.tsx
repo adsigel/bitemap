@@ -177,8 +177,8 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     const cluster = getClusterCopy(point, updatedBites, title);
     setAllBites(updatedBites);
     setState({ phase: "done", point, percentile, totalBites: allBites.length, cluster });
-    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, ...(inboundRef ? { referred_by: inboundRef } : {}) });
-  }, [state, allBites, sandwichId, supabase, userId, pickNext]);
+    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, mode, ...(inboundRef ? { referred_by: inboundRef } : {}) });
+  }, [state, allBites, sandwichId, supabase, userId, pickNext, mode]);
 
   const handleNext = useCallback(async () => {
     setNavigating(true);

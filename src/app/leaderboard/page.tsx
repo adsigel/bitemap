@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayET, addDays } from "@/lib/et-date";
+import { ViewTracker } from "@/components/ViewTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,7 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-10 px-4 py-8">
+      <ViewTracker event="Leaderboard Viewed" />
       <h1 className="text-2xl font-bold">Leaderboard</h1>
       <Section title="Yesterday's top bites" entries={yesterdayTop} />
       <Section title="This week's top bites" entries={thisWeekTop} />

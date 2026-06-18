@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AddSandoLink } from "@/components/AddSandoLink";
 import { GenericAvatarIcon } from "@/components/GenericAvatarIcon";
+import { track } from "@/lib/track";
 
 const EMOJIS = ["🥪", "🥪", "🥪", "🥙", "🌯", "🫓", "🍞"];
 const COUNT = 28;
@@ -160,6 +161,7 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
           {isAuthed ? (
             <a
               href="/explore"
+              onClick={() => track("Explore Clicked", { source: "daily_leaderboard" })}
               className="block rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
             >
               Explore older sandos →
@@ -172,12 +174,17 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                 </p>
                 <a
                   href="/sign-in"
+                  onClick={() => track("Sign Up Clicked", { source: "daily_leaderboard" })}
                   className="mt-3 inline-block rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
                 >
                   Create a free account
                 </a>
               </div>
-              <a href="/explore" className="block text-sm text-stone-500 underline dark:text-stone-400">
+              <a
+                href="/explore"
+                onClick={() => track("Explore Clicked", { source: "daily_leaderboard" })}
+                className="block text-sm text-stone-500 underline dark:text-stone-400"
+              >
                 Or explore older sandos →
               </a>
             </>

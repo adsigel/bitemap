@@ -9,7 +9,6 @@ import { emailHtml } from "@/lib/email-template";
 import { MIN_BITES_FOR_TIMELAPSE } from "@/lib/timelapse";
 
 const FIRST_SANDWICH_BITES_MILESTONE = 10;
-const ALL_DONE_EMAIL_COOLDOWN_HOURS = 20;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -206,41 +205,3 @@ export async function checkBiteMilestones(sandwichId: string) {
   }
 }
 
-// /all-done can be revisited any time, so this is cooldown-gated rather
-// than one-time -- without it, every visit while still caught up would
-// re-send the email.
-export async function sendAllDoneEmailIfDue(userId: string) {
-  const supabase = createAdminClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("last_all_done_email_at")
-    .eq("id", userId)
-    .single();
-
-  if (profile?.last_all_done_email_at) {
-    const hoursSinceLastEmail = (Date.now() - new Date(profile.last_all_done_email_at).getTime()) / (1000 * 60 * 60);
-    if (hoursSinceLastEmail < ALL_DONE_EMAIL_COOLDOWN_HOURS) return;
-  }
-
-  const email = await getUploaderEmail(supabase, userId);
-  if (!email) return;
-
-  // Claim the send before awaiting Resend, so a slow/concurrent call can't
-  // double-send.
-  await supabase.from("profiles").update({ last_all_done_email_at: new Date().toISOString() }).eq("id", userId);
-
-  const { error } = await resend.emails.send({
-    from: "Adam @ Bitemap <hello@bitemap.food>",
-    to: email,
-    subject: "You've bitten everything on Bitemap 🏆",
-    html: emailHtml({
-      intro: `You've taken a bite out of every sandwich on Bitemap right now. To keep the fun going, add a new sandwich and watch the crowd pile on.`,
-      ctaText: "Add a sando",
-      ctaUrl: "https://bitemap.food/upload",
-    }),
-    text: `You've taken a bite out of every sandwich on Bitemap right now. To keep the fun going, add a new sandwich and watch the crowd pile on.\n\nAdd a sando: https://bitemap.food/upload`,
-  });
-  if (error) console.error("Resend error:", error);
-  await trackServer(userId, "User Notified", { notification: "All Sandwiches Bitten" });
-}

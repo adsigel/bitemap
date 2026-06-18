@@ -3,7 +3,7 @@
 import { track } from "@/lib/track";
 
 interface Props {
-  source: "footer" | "post-bite";
+  source: "footer";
   className?: string;
   children: React.ReactNode;
 }
