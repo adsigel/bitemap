@@ -40,8 +40,9 @@ export default function AboutPage() {
       <section className="space-y-2">
         <h2 className="font-semibold text-stone-900 dark:text-stone-100">Does Bitemap make any money?</h2>
         <p>
-          It sure doesn&apos;t, but it does take money to keep it running. If you&apos;re enjoying Bitemap and want 
-          to support my work, you can{" "}
+          No, and I have no intention of selling user data, ever. Keeping Bitemap running does take real money, though, and I 
+          hope to explore some other monetization paths in the future. Iin the meantime, if you&apos;re 
+          enjoying Bitemap and want to support my work, you can{" "}
           <a
             href="https://ko-fi.com/bitemap"
             target="_blank"
@@ -49,7 +50,7 @@ export default function AboutPage() {
             className="text-orange-500 hover:underline"
           >
             donate a couple bucks
-          </a>{" "} to help me cover development costs. Now, go get biting.
+          </a>{" "} to help me cover development costs. Now, stop reading and get biting.
         </p>
       </section>
 
