@@ -155,6 +155,23 @@ A user who is both an uploader-in-today's-set and a biter of today's set gets on
 
 ---
 
+## Email Delivery/Open/Click Tracking + Unsubscribe
+
+Resend (already in use) natively supports delivery/open/click tracking and webhooks — no new email service needed.
+
+- Every `resend.emails.send()` call now carries `tags: [{ name: "notification", value: "..." }, { name: "user_id", value: "..." }]` identifying the notification type and recipient, so webhook events can self-identify without a DB lookup.
+- `src/app/api/webhooks/resend/route.ts` verifies Resend's Svix-style signature by hand (HMAC-SHA256, no `svix` package needed for one route) and forwards `email.delivered` / `.opened` / `.clicked` / `.bounced` / `.complained` to Amplitude via `trackServer`, e.g. `"Email Opened"` with the `notification` tag as a property.
+- One-click unsubscribe (`profiles.marketing_unsubscribed_at`, gated via `getMarketingEmailRecipient()` in `sandwich-actions.ts`) applies only to **non-essential** email: the two daily-recap emails and the two bite/timelapse milestone emails. Transactional status emails (scheduled, live, rejected) are not subject to unsubscribe — they're about the uploader's own submission, not bulk/marketing content.
+- `/api/unsubscribe?u={userId}` sets the flag and redirects to `/unsubscribed`. No login required (low-stakes action, UUID isn't guessable).
+
+**Manual setup required (not code):**
+1. Run migration `023_email_unsubscribe.sql`.
+2. In the Resend dashboard, enable open/click tracking for the sending domain.
+3. Create a webhook pointed at `/api/webhooks/resend`, subscribed to `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`.
+4. Copy the webhook's signing secret into `RESEND_WEBHOOK_SECRET` (`.env.local` and Vercel).
+
+---
+
 ## Amplitude Tracking (changes from v1 table)
 
 | Event | Change |
