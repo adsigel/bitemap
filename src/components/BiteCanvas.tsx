@@ -135,11 +135,11 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
       }
 
       if (state.phase === "placed") {
-        track("Bite Moved", { sandwich_id: sandwichId });
+        track("Bite Moved", { sandwich_id: sandwichId, mode });
       }
       setState({ phase: "placed", point: { x, y } });
     },
-    [state.phase, biteBounds, sandwichId]
+    [state.phase, biteBounds, sandwichId, mode]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -191,7 +191,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
   }, [sandwichId, supabase, router, userId, pickNext, nextSuffix, exhaustedRoute]);
 
   const handleSkip = useCallback(async () => {
-    await track("Sandwich Skipped", { sandwich_id: sandwichId });
+    await track("Sandwich Skipped", { sandwich_id: sandwichId, mode });
     setNavigating(true);
     const id = nextIdRef.current ?? (await pickNext(sandwichId, supabase, userId));
     if (id) {
@@ -199,7 +199,7 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
     } else {
       router.push(exhaustedRoute);
     }
-  }, [sandwichId, supabase, router, userId, pickNext, nextSuffix, exhaustedRoute]);
+  }, [sandwichId, supabase, router, userId, pickNext, nextSuffix, exhaustedRoute, mode]);
 
   const handleShare = useCallback(async () => {
     if (state.phase !== "done" && state.phase !== "already_bitten") return;
@@ -220,17 +220,17 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       if (navigator.share) {
         await navigator.share({ text });
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", ...(userId ? { user_id: userId } : {}) });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", mode, ...(userId ? { user_id: userId } : {}) });
       } else {
         await navigator.clipboard.writeText(text).catch(() => {});
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "clipboard", ...(userId ? { user_id: userId } : {}) });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "clipboard", mode, ...(userId ? { user_id: userId } : {}) });
       }
     } catch {
       // User cancelled share — no-op
     } finally {
       setIsSharing(false);
     }
-  }, [state, allBites, title, userId, slug, sandwichId]);
+  }, [state, allBites, title, userId, slug, sandwichId, mode]);
 
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);

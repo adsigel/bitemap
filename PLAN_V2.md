@@ -159,7 +159,7 @@ A user who is both an uploader-in-today's-set and a biter of today's set gets on
 
 | Event | Change |
 |---|---|
-| `Sandwich Viewed`, `Bite Taken` | New `mode` property: `"daily"` or `"explore"` — reuses the same internal terminology as the `mode` prop already threaded through `BiteCanvas`/`pick-next-sandwich.ts`, rather than inventing a separate term for "the default `/` path." |
+| `Sandwich Viewed`, `Bite Taken`, `Bite Moved`, `Sandwich Skipped`, `Sandwich Shared` | New `mode` property: `"daily"` or `"explore"` — reuses the same internal terminology as the `mode` prop already threaded through `BiteCanvas`/`pick-next-sandwich.ts`, rather than inventing a separate term for "the default `/` path." |
 | `Daily Leaderboard Viewed` | Unchanged name, still fires on the `/all-done` payoff screen (today's 5, in-progress or just-completed). |
 | `Leaderboard Viewed` | New — fires on the `/leaderboard` aggregate page (yesterday/this week/last week). Deliberately a different event name from the one above since they're different surfaces. |
 | `Explore Clicked` | New — fires on both the primary (authed) and secondary (anon) "Explore older sandos" links on the Daily Leaderboard, `source: "daily_leaderboard"`. |
