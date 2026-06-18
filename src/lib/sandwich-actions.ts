@@ -5,7 +5,7 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trackServer } from "@/lib/track-server";
 import { generateSlug } from "@/lib/slug";
-import { emailHtml } from "@/lib/email-template";
+import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
 import { MIN_BITES_FOR_TIMELAPSE } from "@/lib/timelapse";
 
 const FIRST_SANDWICH_BITES_MILESTONE = 10;
@@ -113,6 +113,7 @@ export async function saveSandwich(args: {
       to: "hello@bitemap.food",
       subject: `🥪 New sando needs review: ${args.title}`,
       text: `${uploader} submitted "${args.title}" and it's waiting for approval.\n\nhttps://bitemap.food/admin/review`,
+      tags: [{ name: "notification", value: "new_submission" }],
     });
     if (emailError) console.error("Resend error:", emailError);
   }
@@ -123,6 +124,19 @@ export async function saveSandwich(args: {
 export async function getUploaderEmail(supabase: ReturnType<typeof createAdminClient>, uploaderId: string) {
   const { data: authData } = await supabase.auth.admin.getUserById(uploaderId);
   return authData?.user?.email ?? null;
+}
+
+// For non-essential email (daily recaps, bite/timelapse milestones) --
+// returns null if the user has unsubscribed, so callers can skip the send
+// the same way they already skip a missing email address.
+export async function getMarketingEmailRecipient(supabase: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("marketing_unsubscribed_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.marketing_unsubscribed_at) return null;
+  return getUploaderEmail(supabase, userId);
 }
 
 export async function checkBiteMilestones(sandwichId: string) {
@@ -151,8 +165,9 @@ export async function checkBiteMilestones(sandwichId: string) {
         .single();
 
       if (firstSandwich?.id === sandwichId) {
-        const email = await getUploaderEmail(supabase, sandwich.uploaded_by);
+        const email = await getMarketingEmailRecipient(supabase, sandwich.uploaded_by);
         if (email) {
+          const unsubUrl = unsubscribeUrl(sandwich.uploaded_by);
           emailJobs.push(
             resend.emails.send({
               from: "Adam @ Bitemap <hello@bitemap.food>",
@@ -162,8 +177,13 @@ export async function checkBiteMilestones(sandwichId: string) {
                 intro: `<strong>${sandwich.title}</strong> just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.`,
                 ctaText: "Share my sando",
                 ctaUrl: `${sandwichUrl}?share=1`,
+                unsubscribeUrl: unsubUrl,
               }),
-              text: `${sandwich.title} just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.\n\nShare my sando: ${sandwichUrl}?share=1`,
+              text: `${sandwich.title} just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.\n\nShare my sando: ${sandwichUrl}?share=1\n\nUnsubscribe from these emails: ${unsubUrl}`,
+              tags: [
+                { name: "notification", value: "first_10_bites" },
+                { name: "user_id", value: sandwich.uploaded_by },
+              ],
             })
           );
           emailJobs.push(trackServer(sandwich.uploaded_by, "User Notified", { notification: "First Sandwich 10 Bites" }));
@@ -173,8 +193,9 @@ export async function checkBiteMilestones(sandwichId: string) {
 
     // Hit the timelapse threshold: nudge them to go watch their heatmap fill in.
     if (biteCount === MIN_BITES_FOR_TIMELAPSE) {
-      const email = await getUploaderEmail(supabase, sandwich.uploaded_by);
+      const email = await getMarketingEmailRecipient(supabase, sandwich.uploaded_by);
       if (email) {
+        const unsubUrl = unsubscribeUrl(sandwich.uploaded_by);
         emailJobs.push(
           resend.emails.send({
             from: "Adam @ Bitemap <hello@bitemap.food>",
@@ -186,8 +207,13 @@ export async function checkBiteMilestones(sandwichId: string) {
               ctaUrl: "https://bitemap.food/profile",
               secondaryText: "See who's biting",
               secondaryUrl: sandwichUrl,
+              unsubscribeUrl: unsubUrl,
             }),
-            text: `${sandwich.title} just crossed ${MIN_BITES_FOR_TIMELAPSE} bites. You can now watch the crowd pile on as a timelapse, right from your profile.\n\nView heatmap & make a timelapse: https://bitemap.food/profile\nSee who's biting: ${sandwichUrl}`,
+            text: `${sandwich.title} just crossed ${MIN_BITES_FOR_TIMELAPSE} bites. You can now watch the crowd pile on as a timelapse, right from your profile.\n\nView heatmap & make a timelapse: https://bitemap.food/profile\nSee who's biting: ${sandwichUrl}\n\nUnsubscribe from these emails: ${unsubUrl}`,
+            tags: [
+              { name: "notification", value: "timelapse_threshold" },
+              { name: "user_id", value: sandwich.uploaded_by },
+            ],
           })
         );
         emailJobs.push(trackServer(sandwich.uploaded_by, "User Notified", { notification: "Timelapse Threshold" }));

@@ -51,6 +51,10 @@ export async function approveSandwich(id: string) {
           ctaUrl: sandwichUrl,
         }),
         text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${sandwichUrl}`,
+        tags: [
+          { name: "notification", value: "scheduled" },
+          { name: "user_id", value: sandwich.uploaded_by },
+        ],
       });
       if (emailError) console.error("Resend error:", emailError);
     }
@@ -223,6 +227,10 @@ export async function rejectSandwich(id: string) {
 </body>
 </html>`,
         text: `Thanks for submitting ${sandwich.title} to Bitemap. I've decided not to add it to the app at this time.\n\nI personally review every submission to keep Bitemap focused on authentic sandwiches that'll spark good biting convos. It's nothing personal; please don't let it stop you from submitting again.\n\nSubmit another sando: ${uploadUrl}\n\nThanks for your support,\nAdam @ Bitemap`,
+        tags: [
+          { name: "notification", value: "rejected" },
+          { name: "user_id", value: sandwich.uploaded_by },
+        ],
       });
       if (emailError) console.error("Resend error:", emailError);
     }
