@@ -6,19 +6,26 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-6 text-sm text-stone-700">
-      <h1 className="text-2xl font-bold text-stone-900">About Bitemap</h1>
+    <div className="mx-auto max-w-2xl space-y-6 text-sm text-stone-700 dark:text-stone-300">
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-white">About Bitemap</h1>
 
       <section className="space-y-2">
         <p>
-          Bitemap started as a simple question: where would you take the next bite of a sandwich? Every day we
-          feature a small set of sandwiches, and everyone who bites gets to see how their bite compares to
-          everyone else&apos;s.
+          Bitemap is a passion project born out of a love for sandwiches and data. Piggbybacking off the internet&apos;s{" "}
+          <a
+            href="https://www.youtube.com/watch?v=WZIVjeDOLMw"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-500 hover:underline"
+          >
+            love for debating trivialities
+          </a>{" "}
+          next work here.
         </p>
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold text-stone-900">Why a daily set</h2>
+        <h2 className="font-semibold text-stone-900 dark:text-stone-100">How does it work</h2>
         <p>
           Placeholder copy — replace with the real story. Something about keeping the pool fresh, giving every
           sandwich a fair shot at attention, and making each day&apos;s leaderboard feel like an event worth coming
@@ -27,7 +34,7 @@ export default function AboutPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold text-stone-900">Got a sandwich worth biting?</h2>
+        <h2 className="font-semibold text-stone-900 dark:text-stone-100">Got a sandwich worth biting?</h2>
         <p>
           Placeholder copy — invite people to upload their own sandwich and explain what happens after they submit
           one.
@@ -35,7 +42,7 @@ export default function AboutPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold text-stone-900">Questions</h2>
+        <h2 className="font-semibold text-stone-900 dark:text-stone-100">Questions</h2>
         <p>
           Reach us at <a href="mailto:hello@bitemap.food" className="text-orange-500 hover:underline">hello@bitemap.food</a>.
         </p>

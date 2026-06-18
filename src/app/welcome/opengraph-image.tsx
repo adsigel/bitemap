@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Bitemap — Where would you bite?";
+export const alt = "Bitemap — Your bite vs. everyone else's";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

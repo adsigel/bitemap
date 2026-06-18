@@ -7,7 +7,7 @@ export function AddSandoLink({
   className,
   children,
 }: {
-  source: "header" | "daily_leaderboard";
+  source: "header" | "daily_leaderboard" | "welcome";
   className?: string;
   children: React.ReactNode;
 }) {

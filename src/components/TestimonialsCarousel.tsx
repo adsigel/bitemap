@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 
 const testimonials = [
+  { quote: "Thought it sounded so silly. Clicked it.... Wtf.... Ok I'd bite there..... No way who tf takes a bit there... 15 sandwiches in I guess I'm weird 😅", handle: "Vengeful-Melon" },
   { quote: "This is far more entertaining than it should be.", handle: "thatguyinstarbucks" },
   { quote: "I was going to say this is really stupid.. but then I clicked through 10 sandwiches.", handle: "Extremely_Peaceful" },
-  { quote: "Thought it sounded so silly. Clicked it.... Wtf.... Ok I'd bite there..... No way who tf takes a bit there... 15 sandwiches in I guess I'm weird 😅", handle: "Vengeful-Melon" },
   { quote: "OMG - it made me really hungry!!!!", handle: "SighFor" },
   { quote: "My wife and I sitting on the couch giggling and saying “this is so stupid” but we are both 10+ sandwiches in and cracking up", handle: "nbnicholas"},
   { quote: "This is so mildly entertaining that I kept wanting to know where everyone else is going to take a bite in each wich. I love it", handle: "BettaSplendens1"},

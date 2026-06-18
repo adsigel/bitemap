@@ -3,12 +3,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StaticHeatmap } from "@/components/StaticHeatmap";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
+import { AddSandoLink } from "@/components/AddSandoLink";
 
 export const metadata: Metadata = {
-  title: "Bitemap — Where would you bite?",
+  title: "Bitemap — Your bite vs. everyone else's",
   description: "Place your bite on a sandwich and see where everyone else bites too. Bitemap turns a simple question into something surprisingly social.",
   openGraph: {
-    title: "Bitemap — Where would you bite?",
+    title: "Bitemap — Your bite vs. everyone else's",
     description: "Place your bite on a sandwich and see where everyone else bites too. Bitemap turns a simple question into something surprisingly social.",
     url: `${process.env.NEXT_PUBLIC_SITE_URL}/welcome`,
     siteName: "Bitemap",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bitemap — Where would you bite?",
+    title: "Bitemap — Your bite vs. everyone else's",
     description: "Place your bite on a sandwich and see where everyone else bites too.",
   },
 };
@@ -52,15 +53,15 @@ export default async function WelcomePage() {
               Where would you bite?
             </h1>
             <p className="mb-8 text-lg leading-relaxed text-stone-500 dark:text-stone-400">
-              Bitemap is for sandwich lovers. Tap where you&apos;d take your
-              next bite on a real sandwich, then see exactly where everyone else would bite too.
+              Tap where you&apos;d take your
+              next bite on a real sandwich, then see exactly where everyone else did. Five fresh sandos, every day.
             </p>
             <div className="mb-10">
               <Link
                 href="/"
                 className="inline-block rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
               >
-                Start biting →
+                Bite today&apos;s sandos →
               </Link>
             </div>
           </div>
@@ -81,24 +82,24 @@ export default async function WelcomePage() {
         <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">How it works</h2>
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="text-center">
-            <div className="mb-4 text-4xl">📸</div>
-            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Submit a sando</h3>
-            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-              Real eats from real places. Browse the collection and find one that looks good.
-            </p>
-          </div>
-          <div className="text-center">
             <div className="mb-4 text-4xl">👆</div>
             <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Place your bite</h3>
             <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-              Tap wherever you&apos;d take your next bite. No wrong answers — just your taste.
+              Tap wherever you&apos;d take your next bite. No wrong answers, just your taste.
             </p>
           </div>
           <div className="text-center">
             <div className="mb-4 text-4xl">🔥</div>
-            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">The heatmap fills in</h3>
+            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Watch the map fill in</h3>
             <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-              See where everyone else bites. Corner biter? Center attacker? The map doesn&apos;t lie.
+              See where the crowd bit. Corner biter? Center attacker? The map doesn&apos;t lie.
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="mb-4 text-4xl">📅</div>
+            <h3 className="mb-2 font-semibold text-stone-800 dark:text-stone-100">Come back tomorrow</h3>
+            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+              Five new sandos drop every day. Today&apos;s are only here today.
             </p>
           </div>
         </div>
@@ -111,6 +112,25 @@ export default async function WelcomePage() {
       <section className="px-4 py-16">
         <h2 className="mb-10 text-center text-2xl font-bold text-stone-900 dark:text-white">Backhanded praise for Bitemap</h2>
         <TestimonialsCarousel />
+      </section>
+
+      {/* Divider */}
+      <div className="mx-4 border-t border-stone-200 dark:border-stone-700" />
+
+      {/* Upload CTA */}
+      <section className="px-4 py-16 text-center">
+        <h2 className="mb-3 text-2xl font-bold text-stone-900 dark:text-white">
+          Got a sandwich worth arguing over?
+        </h2>
+        <p className="mb-8 text-stone-500 dark:text-stone-400">
+          Add it, and it might headline tomorrow&apos;s drop.
+        </p>
+        <AddSandoLink
+          source="welcome"
+          className="inline-block rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
+        >
+          Add a sando
+        </AddSandoLink>
       </section>
 
       {/* CTA footer */}
