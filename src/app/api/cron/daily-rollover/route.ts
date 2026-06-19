@@ -54,6 +54,7 @@ async function sendRecapEmails(supabase: ReturnType<typeof createAdminClient>, d
       subject: `${sandwich.title} ranked #${r.rank} yesterday 🏆`,
       html: emailHtml({
         intro: `<strong>${sandwich.title}</strong> ranked #${r.rank} of yesterday's 5 with ${r.bite_count} bite${r.bite_count === 1 ? "" : "s"}. Here's how the full day played out:<br><br>${rankingsHtml}`,
+        imageUrl: `https://bitemap.food/api/heatmap-image/${sandwich.id}`,
         ctaText: "See who's biting",
         ctaUrl: withEmailSource(sandwichUrl, "recap_uploader"),
         unsubscribeUrl: unsubUrl,
