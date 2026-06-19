@@ -165,7 +165,16 @@ export async function swapRepeatSlot(date: string, oldSandwichId: string, formDa
 
 export async function unpublishSandwich(id: string) {
   const supabase = createAdminClient();
-  await supabase.from("sandwiches").update({ approved: false }).eq("id", id);
+  await supabase.from("sandwiches").update({ approved: false, scheduled_for: null }).eq("id", id);
+
+  // Unpublishing is a moderation action -- it should pull the sandwich out
+  // of any current/future day's set immediately, not just stop it from
+  // being picked in the future. Past slots are left alone: they're already
+  // rolled into daily_leaderboard_results, and fillPipeline's
+  // longest-since-last-featured ordering relies on that history surviving.
+  await supabase.from("daily_slots").delete().eq("sandwich_id", id).gte("date", todayET());
+  await fillPipeline(supabase);
+
   revalidatePath("/admin/review");
 }
 
