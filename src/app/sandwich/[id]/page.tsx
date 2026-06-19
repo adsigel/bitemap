@@ -54,10 +54,10 @@ export default async function SandwichPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; share?: string; ref?: string; mode?: string }>;
+  searchParams: Promise<{ submitted?: string; share?: string; ref?: string; mode?: string; email_source?: string }>;
 }) {
   const { id } = await params;
-  const { submitted, share, ref, mode } = await searchParams;
+  const { submitted, share, ref, mode, email_source: emailSource } = await searchParams;
   const supabase = await createClient();
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -188,7 +188,7 @@ export default async function SandwichPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, mode: mode === "explore" ? "explore" : "daily", ...(ref ? { referred_by: ref } : {}) }} />
+      <ViewTracker event="Sandwich Viewed" properties={{ sandwich_id: sandwich.id, title: sandwich.title, mode: mode === "explore" ? "explore" : "daily", ...(ref ? { referred_by: ref } : {}), ...(emailSource ? { email_source: emailSource } : {}) }} />
       {dailyProgress && (
         <div className="mb-3 flex items-center gap-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Today&apos;s Sandos</p>
@@ -241,6 +241,7 @@ export default async function SandwichPage({
         autoShare={share === "1"}
         submitted={!!submitted}
         inboundRef={ref}
+        emailSource={emailSource}
         existingBite={existingBite}
         creatorNote={creatorFeatures ? (sandwich.creator_note ?? null) : null}
         isAdmin={isAdmin}

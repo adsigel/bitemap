@@ -121,13 +121,13 @@ export function DailyLeaderboard({ entries, isFinal, isAuthed }: Props) {
                       <div className="h-5 w-5 shrink-0 overflow-hidden rounded-full">
                         <SafeAvatarImage
                           url={e.uploaderAvatarUrl}
-                          alt={e.uploaderName ?? "Admin"}
+                          alt={e.uploaderName ?? "Anonymous"}
                           size={22}
                           fallbackIconClassName="h-3.5 w-3.5"
                         />
                       </div>
                       <span className="text-sm text-stone-400">
-                        {e.uploaderName ?? "Admin"} {isTop && "🏆"}
+                        {e.uploaderName ?? "Anonymous"} {isTop && "🏆"}
                       </span>
                     </div>
                   </div>

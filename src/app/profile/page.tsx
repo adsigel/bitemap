@@ -14,9 +14,9 @@ import type { Point } from "@/lib/types";
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; email_source?: string }>;
 }) {
-  const { sort } = await searchParams;
+  const { sort, email_source: emailSource } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -129,7 +129,7 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-lg space-y-8">
-      <ViewTracker event="Profile Viewed" />
+      <ViewTracker event="Profile Viewed" properties={emailSource ? { email_source: emailSource } : undefined} />
       <div className="flex items-center gap-4">
         <AvatarEditor userId={user.id} initialAvatarUrl={profile?.avatar_url ?? null} displayName={profile?.display_name ?? "?"} />
         <div className="min-w-0">

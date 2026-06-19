@@ -7,24 +7,28 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 
 export const SLOTS_PER_DAY = 5;
 export const PIPELINE_DAYS = 4; // today + 3 future days
+export const MAX_NEW_RELEASES_PER_DAY = 2;
 
 interface DaySlotRow {
   sandwich_id: string;
+  is_new_release: boolean;
   sandwiches: { uploaded_by: string | null } | null;
 }
 
 async function getDaySlots(supabase: AdminClient, day: string): Promise<DaySlotRow[]> {
   const { data } = await supabase
     .from("daily_slots")
-    .select("sandwich_id, sandwiches(uploaded_by)")
+    .select("sandwich_id, is_new_release, sandwiches(uploaded_by)")
     .eq("date", day);
   return (data ?? []) as unknown as DaySlotRow[];
 }
 
 /**
  * Called once, at admin approval. Walks the pipeline forward from today and
- * places the sandwich in the first day with an open slot and no existing
- * slot from the same uploader (the per-uploader-per-day cap), extending the
+ * places the sandwich in the first day with an open slot, no existing slot
+ * from the same uploader (the per-uploader-per-day cap), and fewer than
+ * MAX_NEW_RELEASES_PER_DAY new releases already scheduled (so a burst of
+ * approvals doesn't burn the "new" novelty in a single day) -- extending the
  * pipeline if every day currently in it is full.
  */
 export async function assignToSchedule(supabase: AdminClient, sandwichId: string): Promise<string> {
@@ -43,7 +47,8 @@ export async function assignToSchedule(supabase: AdminClient, sandwichId: string
     const slots = await getDaySlots(supabase, day);
     const uploaderTaken =
       !!sandwich.uploaded_by && slots.some((s) => s.sandwiches?.uploaded_by === sandwich.uploaded_by);
-    if (slots.length < SLOTS_PER_DAY && !uploaderTaken) break;
+    const newReleaseCount = slots.filter((s) => s.is_new_release).length;
+    if (slots.length < SLOTS_PER_DAY && !uploaderTaken && newReleaseCount < MAX_NEW_RELEASES_PER_DAY) break;
     offset += 1;
     day = addDays(today, offset);
   }
@@ -60,6 +65,12 @@ export async function assignToSchedule(supabase: AdminClient, sandwichId: string
  * finished (e.g. the request was interrupted mid-flight; these writes
  * aren't wrapped in a single transaction). Safe to call repeatedly; once
  * a sandwich is scheduled it no longer matches the filter.
+ *
+ * Also requires `first_featured_date IS NULL` -- the v1-cutover backfill
+ * (migration 018) set first_featured_date on every pre-existing approved
+ * sandwich without ever touching scheduled_for, so without this check
+ * every old v1 sandwich looks like an orphaned new approval and gets
+ * wrongly re-scheduled as a "new release" by assignToSchedule.
  */
 export async function scheduleOrphanedApprovals(
   supabase: AdminClient
@@ -68,7 +79,8 @@ export async function scheduleOrphanedApprovals(
     .from("sandwiches")
     .select("id, title, slug, uploaded_by")
     .eq("approved", true)
-    .is("scheduled_for", null);
+    .is("scheduled_for", null)
+    .is("first_featured_date", null);
   if (!orphans?.length) return [];
 
   const fixed = [];

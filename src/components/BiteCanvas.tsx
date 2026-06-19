@@ -36,6 +36,7 @@ interface Props {
   autoShare?: boolean;
   submitted?: boolean;
   inboundRef?: string | null;
+  emailSource?: string | null;
   existingBite?: { x: number; y: number } | null;
   creatorNote?: string | null;
   isAdmin?: boolean;
@@ -51,7 +52,7 @@ type State =
   | { phase: "already_bitten"; point: Point };
 
 
-export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], autoShare, submitted, inboundRef, existingBite, creatorNote, isAdmin, mode = "daily", isLastOfToday }: Props) {
+export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, biteBounds, uploaderName, biters = [], autoShare, submitted, inboundRef, emailSource, existingBite, creatorNote, isAdmin, mode = "daily", isLastOfToday }: Props) {
   const router = useRouter();
   const pickNext = useCallback(
     (currentId: string, supabase: ReturnType<typeof createClient>, userId: string | null) =>
@@ -172,14 +173,14 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
     nextIdRef.current = await nextIdPromise;
 
-    checkBiteMilestones(sandwichId).catch(console.error);
+    checkBiteMilestones(sandwichId, userId).catch(console.error);
 
     const updatedBites = [...allBites, point];
     const cluster = getClusterCopy(point, updatedBites, title);
     setAllBites(updatedBites);
     setState({ phase: "done", point, percentile, totalBites: allBites.length, cluster });
-    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, mode, ...(inboundRef ? { referred_by: inboundRef } : {}) });
-  }, [state, allBites, sandwichId, supabase, userId, pickNext, mode]);
+    track("Bite Taken", { sandwich_id: sandwichId, x: point.x, y: point.y, percentile, total_bites: updatedBites.length, mode, ...(inboundRef ? { referred_by: inboundRef } : {}), ...(emailSource ? { email_source: emailSource } : {}) });
+  }, [state, allBites, sandwichId, supabase, userId, pickNext, mode, inboundRef, emailSource]);
 
   const handleNext = useCallback(async () => {
     setNavigating(true);
@@ -221,17 +222,17 @@ export function BiteCanvas({ sandwichId, slug, title, imageUrl, initialBites, bi
 
       if (navigator.share) {
         await navigator.share({ text });
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", mode, ...(userId ? { user_id: userId } : {}) });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "native_share", mode, ...(userId ? { user_id: userId } : {}), ...(emailSource ? { email_source: emailSource } : {}) });
       } else {
         await navigator.clipboard.writeText(text).catch(() => {});
-        track("Sandwich Shared", { sandwich_id: sandwichId, method: "clipboard", mode, ...(userId ? { user_id: userId } : {}) });
+        track("Sandwich Shared", { sandwich_id: sandwichId, method: "clipboard", mode, ...(userId ? { user_id: userId } : {}), ...(emailSource ? { email_source: emailSource } : {}) });
       }
     } catch {
       // User cancelled share — no-op
     } finally {
       setIsSharing(false);
     }
-  }, [state, allBites, title, userId, slug, sandwichId, mode]);
+  }, [state, allBites, title, userId, slug, sandwichId, mode, emailSource]);
 
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);

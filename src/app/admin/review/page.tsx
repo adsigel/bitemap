@@ -179,6 +179,7 @@ export default async function AdminReviewPage({
           >
             {t.label}
             {t.key === "review" && pending?.length ? ` (${pending.length})` : ""}
+            {t.key === "library" && approved?.length ? ` (${approved.length})` : ""}
           </a>
         ))}
       </nav>
@@ -201,7 +202,7 @@ export default async function AdminReviewPage({
                   image_url: sandwich.image_url,
                   bite_bounds: sandwich.bite_bounds as { x: number; y: number }[] | null,
                   created_at: sandwich.created_at,
-                  uploaderName: sandwich.uploaded_by ? pendingUploaderNameMap.get(sandwich.uploaded_by) ?? "Unknown" : "Admin",
+                  uploaderName: sandwich.uploaded_by ? pendingUploaderNameMap.get(sandwich.uploaded_by) ?? "Unknown" : "Anonymous",
                 }}
               />
             ))}
@@ -238,7 +239,7 @@ export default async function AdminReviewPage({
                       if (!sandwich) return null;
                       const uploaderName = sandwich.uploaded_by
                         ? uploaderNameMap.get(sandwich.uploaded_by) ?? "Unknown"
-                        : "Admin";
+                        : "Anonymous";
                       const lastFeatured = lastFeaturedMap.get(slot.sandwich_id);
                       return (
                         <div

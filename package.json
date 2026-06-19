@@ -11,6 +11,7 @@
   "dependencies": {
     "@amplitude/analytics-browser": "^2.42.4",
     "@anthropic-ai/sdk": "^0.104.2",
+    "@napi-rs/canvas": "^1.0.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "d3-array": "^3.2.4",

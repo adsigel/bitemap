@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { rolloverDay, fillPipeline, scheduleOrphanedApprovals, todayET, addDays, etDayBounds } from "@/lib/daily-set";
+import { rolloverDay, fillPipeline, scheduleOrphanedApprovals, todayET, addDays, etDayBounds, formatDateET } from "@/lib/daily-set";
 import { getUploaderEmail, getMarketingEmailRecipient } from "@/lib/sandwich-actions";
-import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
+import { emailHtml, unsubscribeUrl, withEmailSource } from "@/lib/email-template";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -51,14 +51,14 @@ async function sendRecapEmails(supabase: ReturnType<typeof createAdminClient>, d
     const { error } = await resend.emails.send({
       from: "Adam @ Bitemap <hello@bitemap.food>",
       to: email,
-      subject: `${sandwich.title} ranked #${r.rank} today 🏆`,
+      subject: `${sandwich.title} ranked #${r.rank} yesterday 🏆`,
       html: emailHtml({
-        intro: `<strong>${sandwich.title}</strong> ranked #${r.rank} of today's 5 with ${r.bite_count} bite${r.bite_count === 1 ? "" : "s"}. Here's how the full day played out:<br><br>${rankingsHtml}`,
+        intro: `<strong>${sandwich.title}</strong> ranked #${r.rank} of yesterday's 5 with ${r.bite_count} bite${r.bite_count === 1 ? "" : "s"}. Here's how the full day played out:<br><br>${rankingsHtml}`,
         ctaText: "See who's biting",
-        ctaUrl: sandwichUrl,
+        ctaUrl: withEmailSource(sandwichUrl, "recap_uploader"),
         unsubscribeUrl: unsubUrl,
       }),
-      text: `${sandwich.title} ranked #${r.rank} of today's 5 with ${r.bite_count} bites.\n\nSee who's biting: ${sandwichUrl}\n\nUnsubscribe from these emails: ${unsubUrl}`,
+      text: `${sandwich.title} ranked #${r.rank} of yesterday's 5 with ${r.bite_count} bites.\n\nSee who's biting: ${withEmailSource(sandwichUrl, "recap_uploader")}\n\nUnsubscribe from these emails: ${unsubUrl}`,
       tags: [
         { name: "notification", value: "recap_uploader" },
         { name: "user_id", value: sandwich.uploaded_by },
@@ -67,7 +67,7 @@ async function sendRecapEmails(supabase: ReturnType<typeof createAdminClient>, d
     if (error) console.error("Resend error:", error);
   }
 
-  // Biter version: anyone else (authed) who bit at least one of today's 5.
+  // Biter version: anyone else (authed) who bit at least one of that day's 5.
   const { start, end } = etDayBounds(day);
   const { data: dayBites } = await supabase
     .from("bites")
@@ -83,22 +83,26 @@ async function sendRecapEmails(supabase: ReturnType<typeof createAdminClient>, d
       .filter((id) => !uploaderIds.has(id))
   );
 
+  const dateLabel = formatDateET(day);
   for (const userId of biterIds) {
     const email = await getMarketingEmailRecipient(supabase, userId);
     if (!email) continue;
 
     const unsubUrl = unsubscribeUrl(userId);
+    const homeUrl = withEmailSource("https://bitemap.food", "recap_biter");
+    const uploadUrl = withEmailSource("https://bitemap.food/upload", "recap_biter");
     const { error } = await resend.emails.send({
       from: "Adam @ Bitemap <hello@bitemap.food>",
       to: email,
-      subject: "Today's leaderboard 🏆",
+      subject: `Bitemap Leaderboard for ${dateLabel} 🏆`,
       html: emailHtml({
-        intro: `Here's how today's 5 sandwiches stacked up:<br><br>${rankingsHtml}`,
-        ctaText: "Explore older sandos",
-        ctaUrl: "https://bitemap.food/explore",
+        intro: `Thanks for biting with us. Here's how yesterday's 5 finished up:<br><br>${rankingsHtml}<br><br><a href="${homeUrl}" style="color:#1c1917;text-decoration:underline;">A new set of 5 is already live — come take a look.</a><br><br>Ever wondered where people would bite your sandwich?`,
+        ctaText: "Upload a sandwich",
+        ctaUrl: uploadUrl,
+        signoff: "Thanks for biting,",
         unsubscribeUrl: unsubUrl,
       }),
-      text: `Here's how today's 5 sandwiches stacked up:\n\n${rankingsHtml.replace(/<br>/g, "\n")}\n\nExplore older sandos: https://bitemap.food/explore\n\nUnsubscribe from these emails: ${unsubUrl}`,
+      text: `Thanks for biting with us. Here's how yesterday's 5 finished up:\n\n${rankingsHtml.replace(/<br>/g, "\n")}\n\nA new set of 5 is already live — come take a look: ${homeUrl}\n\nEver wondered where people would bite your sandwich? Upload a sandwich: ${uploadUrl}\n\nUnsubscribe from these emails: ${unsubUrl}`,
       tags: [
         { name: "notification", value: "recap_biter" },
         { name: "user_id", value: userId },
@@ -135,11 +139,11 @@ async function sendLiveEmails(supabase: ReturnType<typeof createAdminClient>, da
       html: emailHtml({
         intro: `<strong>${sandwich.title}</strong> is live on Bitemap today. Be sure to post about it on social and share with friends and watch the map fill in.`,
         ctaText: "Share my sando",
-        ctaUrl: `${sandwichUrl}?share=1`,
+        ctaUrl: withEmailSource(`${sandwichUrl}?share=1`, "live"),
         secondaryText: "See who's biting",
-        secondaryUrl: sandwichUrl,
+        secondaryUrl: withEmailSource(sandwichUrl, "live"),
       }),
-      text: `${sandwich.title} is live on Bitemap today. Be sure to post about it on social and share with friends and watch the map fill in.\n\nShare my sando: ${sandwichUrl}?share=1\nSee who's biting: ${sandwichUrl}`,
+      text: `${sandwich.title} is live on Bitemap today. Be sure to post about it on social and share with friends and watch the map fill in.\n\nShare my sando: ${withEmailSource(`${sandwichUrl}?share=1`, "live")}\nSee who's biting: ${withEmailSource(sandwichUrl, "live")}`,
       tags: [
         { name: "notification", value: "live" },
         { name: "user_id", value: sandwich.uploaded_by },

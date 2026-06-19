@@ -1,5 +1,18 @@
 import type { Point } from "./types";
 
+// Loose enough to accept both HTMLCanvasElement and @napi-rs/canvas's Canvas
+// (the server-side renderer used for email images) without fighting their
+// incompatible lib.dom vs napi-rs type definitions.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CanvasLike = { width: number; height: number; getContext(contextId: "2d"): any };
+
+function defaultCreateCanvas(w: number, h: number): CanvasLike {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
 function colormap(t: number): [number, number, number, number] {
   const stops = [
     { t: 0,    r: 253, g: 224, b: 71,  a: 0 },
@@ -24,10 +37,11 @@ function colormap(t: number): [number, number, number, number] {
 }
 
 export function drawHeatmap(
-  canvas: HTMLCanvasElement,
+  canvas: CanvasLike,
   bites: Point[],
   width: number,
-  height: number
+  height: number,
+  createCanvas: (w: number, h: number) => CanvasLike = defaultCreateCanvas
 ): void {
   if (bites.length === 0) return;
   const ctx = canvas.getContext("2d")!;
@@ -67,9 +81,7 @@ export function drawHeatmap(
 
   const logMax = Math.log1p(maxDensity);
 
-  const tmp = document.createElement("canvas");
-  tmp.width = gw;
-  tmp.height = gh;
+  const tmp = createCanvas(gw, gh);
   const tmpCtx = tmp.getContext("2d")!;
   const imageData = tmpCtx.createImageData(gw, gh);
 

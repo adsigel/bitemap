@@ -5,11 +5,12 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { trackServer } from "@/lib/track-server";
 import { generateSlug } from "@/lib/slug";
-import { emailHtml, unsubscribeUrl } from "@/lib/email-template";
+import { emailHtml, unsubscribeUrl, withEmailSource } from "@/lib/email-template";
 import { MIN_BITES_FOR_TIMELAPSE } from "@/lib/timelapse";
 import { formatDateET } from "@/lib/daily-set";
 
 const FIRST_SANDWICH_BITES_MILESTONE = 10;
+const BITE_MILESTONE_FOR_UPLOAD_NUDGE = 8;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -152,6 +153,7 @@ export async function sendScheduledEmail(
   if (!email) return;
 
   const sandwichUrl = `https://bitemap.food/sandwich/${sandwich.slug ?? sandwich.id}`;
+  const trackedUrl = withEmailSource(sandwichUrl, "scheduled");
   const dateLabel = formatDateET(scheduledFor);
   const { error } = await resend.emails.send({
     from: "Adam @ Bitemap <hello@bitemap.food>",
@@ -160,9 +162,9 @@ export async function sendScheduledEmail(
     html: emailHtml({
       intro: `<strong>${sandwich.title}</strong> passed review and is scheduled to go live on <strong>${dateLabel}</strong>. We'll email you again the moment it's live.`,
       ctaText: "See who's biting",
-      ctaUrl: sandwichUrl,
+      ctaUrl: trackedUrl,
     }),
-    text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${sandwichUrl}`,
+    text: `${sandwich.title} passed review and is scheduled to go live on ${dateLabel}. We'll email you again the moment it's live.\n\nSee who's biting: ${trackedUrl}`,
     tags: [
       { name: "notification", value: "scheduled" },
       { name: "user_id", value: sandwich.uploaded_by },
@@ -171,7 +173,7 @@ export async function sendScheduledEmail(
   if (error) console.error("Resend error:", error);
 }
 
-export async function checkBiteMilestones(sandwichId: string) {
+export async function checkBiteMilestones(sandwichId: string, userId: string | null = null) {
   const supabase = createAdminClient();
 
   const [sandwichResult, sandwichBiteResult] = await Promise.all([
@@ -208,10 +210,10 @@ export async function checkBiteMilestones(sandwichId: string) {
               html: emailHtml({
                 intro: `<strong>${sandwich.title}</strong> just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.`,
                 ctaText: "Share my sando",
-                ctaUrl: `${sandwichUrl}?share=1`,
+                ctaUrl: withEmailSource(`${sandwichUrl}?share=1`, "first_10_bites"),
                 unsubscribeUrl: unsubUrl,
               }),
-              text: `${sandwich.title} just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.\n\nShare my sando: ${sandwichUrl}?share=1\n\nUnsubscribe from these emails: ${unsubUrl}`,
+              text: `${sandwich.title} just got its 10th bite. People are already finding it and biting. Share it and see if you can get it to 100.\n\nShare my sando: ${withEmailSource(`${sandwichUrl}?share=1`, "first_10_bites")}\n\nUnsubscribe from these emails: ${unsubUrl}`,
               tags: [
                 { name: "notification", value: "first_10_bites" },
                 { name: "user_id", value: sandwich.uploaded_by },
@@ -235,13 +237,14 @@ export async function checkBiteMilestones(sandwichId: string) {
             subject: `🎉 ${sandwich.title} just hit ${MIN_BITES_FOR_TIMELAPSE} bites`,
             html: emailHtml({
               intro: `<strong>${sandwich.title}</strong> just crossed ${MIN_BITES_FOR_TIMELAPSE} bites. You can now watch the crowd pile on as a timelapse, right from your profile.`,
+              imageUrl: `https://bitemap.food/api/heatmap-image/${sandwichId}`,
               ctaText: "View heatmap & make a timelapse",
-              ctaUrl: "https://bitemap.food/profile",
+              ctaUrl: withEmailSource("https://bitemap.food/profile", "timelapse_threshold"),
               secondaryText: "See who's biting",
-              secondaryUrl: sandwichUrl,
+              secondaryUrl: withEmailSource(sandwichUrl, "timelapse_threshold"),
               unsubscribeUrl: unsubUrl,
             }),
-            text: `${sandwich.title} just crossed ${MIN_BITES_FOR_TIMELAPSE} bites. You can now watch the crowd pile on as a timelapse, right from your profile.\n\nView heatmap & make a timelapse: https://bitemap.food/profile\nSee who's biting: ${sandwichUrl}\n\nUnsubscribe from these emails: ${unsubUrl}`,
+            text: `${sandwich.title} just crossed ${MIN_BITES_FOR_TIMELAPSE} bites. You can now watch the crowd pile on as a timelapse, right from your profile.\n\nView heatmap & make a timelapse: ${withEmailSource("https://bitemap.food/profile", "timelapse_threshold")}\nSee who's biting: ${withEmailSource(sandwichUrl, "timelapse_threshold")}\n\nUnsubscribe from these emails: ${unsubUrl}`,
             tags: [
               { name: "notification", value: "timelapse_threshold" },
               { name: "user_id", value: sandwich.uploaded_by },
@@ -252,6 +255,51 @@ export async function checkBiteMilestones(sandwichId: string) {
       }
     }
 
+  }
+
+  // Biter (not uploader) hits 8 total bites and has never uploaded a sandwich
+  // themselves -- nudge them toward contributing one. Fire-once via
+  // profiles.upload_nudge_sent_at, since this is keyed off a running total
+  // that would otherwise re-match on every later bite too.
+  if (userId) {
+    const [{ count: totalBites }, { count: uploadCount }, { data: profile }] = await Promise.all([
+      supabase.from("bites").select("*", { count: "exact", head: true }).eq("user_id", userId),
+      supabase.from("sandwiches").select("*", { count: "exact", head: true }).eq("uploaded_by", userId),
+      supabase.from("profiles").select("upload_nudge_sent_at").eq("id", userId).single(),
+    ]);
+
+    if (totalBites === BITE_MILESTONE_FOR_UPLOAD_NUDGE && uploadCount === 0 && !profile?.upload_nudge_sent_at) {
+      const email = await getMarketingEmailRecipient(supabase, userId);
+      if (email) {
+        const unsubUrl = unsubscribeUrl(userId);
+        const uploadUrl = withEmailSource("https://bitemap.food/upload", "upload_nudge");
+        const intro = [
+          `You've bitten ${BITE_MILESTONE_FOR_UPLOAD_NUDGE} sandwiches on Bitemap. You decided where strangers' sandwiches ought to be bitten, and you shared your opinions with us. We love you for it.`,
+          `You haven't put up one of your own sandwiches yet for the community to bite. That's when things get really interesting.`,
+          `Maybe they all go for the corner. Maybe they swarm the middle and you'll never understand why. Either way it's your sandwich on the map, and the map fills in fast. Grab a pic of your next sandwich, maybe at lunch, and find out where people would take their bites.`,
+        ];
+        emailJobs.push(
+          resend.emails.send({
+            from: "Adam @ Bitemap <hello@bitemap.food>",
+            to: email,
+            subject: `You've bitten ${BITE_MILESTONE_FOR_UPLOAD_NUDGE} sandwiches. Where would they bite yours?`,
+            html: emailHtml({
+              intro: intro.join("<br><br>"),
+              ctaText: "Upload yours",
+              ctaUrl: uploadUrl,
+              unsubscribeUrl: unsubUrl,
+            }),
+            text: `${intro.join("\n\n")}\n\nUpload yours: ${uploadUrl}\n\nUnsubscribe from these emails: ${unsubUrl}`,
+            tags: [
+              { name: "notification", value: "upload_nudge" },
+              { name: "user_id", value: userId },
+            ],
+          })
+        );
+        await supabase.from("profiles").update({ upload_nudge_sent_at: new Date().toISOString() }).eq("id", userId);
+        emailJobs.push(trackServer(userId, "User Notified", { notification: "Upload Nudge" }));
+      }
+    }
   }
 
   if (emailJobs.length > 0) {
