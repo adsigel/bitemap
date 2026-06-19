@@ -135,15 +135,15 @@ async function sendLiveEmails(supabase: ReturnType<typeof createAdminClient>, da
     const { error } = await resend.emails.send({
       from: "Adam @ Bitemap <hello@bitemap.food>",
       to: email,
-      subject: `${sandwich.title} is live today — go get your first bites`,
+      subject: `${sandwich.title} is featured in today's lineup — now spread the word`,
       html: emailHtml({
-        intro: `<strong>${sandwich.title}</strong> is live on Bitemap today. Be sure to post about it on social and share with friends and watch the map fill in.`,
+        intro: `<strong>${sandwich.title}</strong> is live in Bitemap's featured rotation today. Be sure to post about it on social and share with friends and watch the map fill in.`,
         ctaText: "Share my sando",
         ctaUrl: withEmailSource(`${sandwichUrl}?share=1`, "live"),
         secondaryText: "See who's biting",
         secondaryUrl: withEmailSource(sandwichUrl, "live"),
       }),
-      text: `${sandwich.title} is live on Bitemap today. Be sure to post about it on social and share with friends and watch the map fill in.\n\nShare my sando: ${withEmailSource(`${sandwichUrl}?share=1`, "live")}\nSee who's biting: ${withEmailSource(sandwichUrl, "live")}`,
+      text: `${sandwich.title} is live in Bitemap's featured rotation today. Be sure to post about it on social and share with friends and watch the map fill in.\n\nShare my sando: ${withEmailSource(`${sandwichUrl}?share=1`, "live")}\nSee who's biting: ${withEmailSource(sandwichUrl, "live")}`,
       tags: [
         { name: "notification", value: "live" },
         { name: "user_id", value: sandwich.uploaded_by },
